@@ -81,6 +81,16 @@ public partial class MainWindow : Window
         SaveBinding(DeckInputEventType.EncoderTurn, action.Id);
     }
 
+    private void TurnActionGroupComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isUpdatingBindingEditor || TurnActionGroupComboBox.SelectedItem is not DeckActionGroup group)
+        {
+            return;
+        }
+
+        ChangeActionGroup(DeckInputEventType.EncoderTurn, group, TurnActionComboBox);
+    }
+
     private void PressActionComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_isUpdatingBindingEditor || PressActionComboBox.SelectedItem is not IDeckAction action)
@@ -93,6 +103,20 @@ public partial class MainWindow : Window
             : DeckInputEventType.EncoderPress;
 
         SaveBinding(triggerEventType, action.Id);
+    }
+
+    private void PressActionGroupComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isUpdatingBindingEditor || PressActionGroupComboBox.SelectedItem is not DeckActionGroup group)
+        {
+            return;
+        }
+
+        var triggerEventType = _selectedControl?.ControlType == DeckControlType.Button
+            ? DeckInputEventType.ButtonPress
+            : DeckInputEventType.EncoderPress;
+
+        ChangeActionGroup(triggerEventType, group, PressActionComboBox);
     }
 
     private void SceneComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -470,6 +494,8 @@ public partial class MainWindow : Window
                 PressBindingRow.Visibility = Visibility.Collapsed;
                 TurnActionComboBox.ItemsSource = null;
                 PressActionComboBox.ItemsSource = null;
+                TurnActionGroupComboBox.ItemsSource = null;
+                PressActionGroupComboBox.ItemsSource = null;
                 return;
             }
 
@@ -484,21 +510,30 @@ public partial class MainWindow : Window
             if (selectedControl.ControlType == DeckControlType.Encoder)
             {
                 TurnBindingRow.Visibility = Visibility.Visible;
-                TurnActionComboBox.ItemsSource = _actionCatalog.GetActionsFor(DeckInputEventType.EncoderTurn);
-                TurnActionComboBox.SelectedItem = _actionCatalog.GetAction(_bindingStore.GetActionId(device, DeckControlType.Encoder, selectedControl.ControlIndex, DeckInputEventType.EncoderTurn));
+                ConfigureActionEditor(
+                    DeckInputEventType.EncoderTurn,
+                    _bindingStore.GetActionId(device, DeckControlType.Encoder, selectedControl.ControlIndex, DeckInputEventType.EncoderTurn),
+                    TurnActionGroupComboBox,
+                    TurnActionComboBox);
 
                 PressBindingRow.Visibility = Visibility.Visible;
                 PressBindingLabel.Text = "Press Action";
-                PressActionComboBox.ItemsSource = _actionCatalog.GetActionsFor(DeckInputEventType.EncoderPress);
-                PressActionComboBox.SelectedItem = _actionCatalog.GetAction(_bindingStore.GetActionId(device, DeckControlType.Encoder, selectedControl.ControlIndex, DeckInputEventType.EncoderPress));
+                ConfigureActionEditor(
+                    DeckInputEventType.EncoderPress,
+                    _bindingStore.GetActionId(device, DeckControlType.Encoder, selectedControl.ControlIndex, DeckInputEventType.EncoderPress),
+                    PressActionGroupComboBox,
+                    PressActionComboBox);
             }
             else
             {
                 TurnBindingRow.Visibility = Visibility.Collapsed;
                 PressBindingRow.Visibility = Visibility.Visible;
                 PressBindingLabel.Text = "Button Action";
-                PressActionComboBox.ItemsSource = _actionCatalog.GetActionsFor(DeckInputEventType.ButtonPress);
-                PressActionComboBox.SelectedItem = _actionCatalog.GetAction(_bindingStore.GetActionId(device, DeckControlType.Button, selectedControl.ControlIndex, DeckInputEventType.ButtonPress));
+                ConfigureActionEditor(
+                    DeckInputEventType.ButtonPress,
+                    _bindingStore.GetActionId(device, DeckControlType.Button, selectedControl.ControlIndex, DeckInputEventType.ButtonPress),
+                    PressActionGroupComboBox,
+                    PressActionComboBox);
             }
         }
         finally
@@ -595,6 +630,44 @@ public partial class MainWindow : Window
             CornerRadius = new CornerRadius(cornerRadius),
             Child = BuildControlLabel(control, foreground),
         };
+    }
+
+    private void ConfigureActionEditor(
+        DeckInputEventType triggerEventType,
+        string actionId,
+        ComboBox groupComboBox,
+        ComboBox actionComboBox)
+    {
+        var action = _actionCatalog.GetAction(actionId);
+        groupComboBox.ItemsSource = _actionCatalog.GetGroupsFor(triggerEventType);
+        groupComboBox.SelectedItem = action.Group;
+        actionComboBox.ItemsSource = _actionCatalog.GetActionsFor(triggerEventType, action.Group.Id);
+        actionComboBox.SelectedItem = action;
+    }
+
+    private void ChangeActionGroup(
+        DeckInputEventType triggerEventType,
+        DeckActionGroup group,
+        ComboBox actionComboBox)
+    {
+        var actions = _actionCatalog.GetActionsFor(triggerEventType, group.Id);
+        var firstAction = actions.FirstOrDefault();
+
+        _isUpdatingBindingEditor = true;
+        try
+        {
+            actionComboBox.ItemsSource = actions;
+            actionComboBox.SelectedItem = firstAction;
+        }
+        finally
+        {
+            _isUpdatingBindingEditor = false;
+        }
+
+        if (firstAction is not null)
+        {
+            SaveBinding(triggerEventType, firstAction.Id);
+        }
     }
 
     private void RefreshButtonIcons()

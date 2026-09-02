@@ -11,6 +11,8 @@ internal sealed class VolumeAdjustAction(WindowsVolumeController volumeControlle
 
     public string DisplayName => "Adjust Volume";
 
+    public DeckActionGroup Group => DeckActionGroups.Audio;
+
     public bool Supports(DeckInputEventType triggerEventType)
     {
         return triggerEventType == DeckInputEventType.EncoderTurn;

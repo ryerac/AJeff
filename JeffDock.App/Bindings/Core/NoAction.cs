@@ -10,6 +10,8 @@ internal sealed class NoAction : IDeckAction
 
     public string DisplayName => "None";
 
+    public DeckActionGroup Group => DeckActionGroups.None;
+
     public bool Supports(DeckInputEventType triggerEventType)
     {
         return triggerEventType is DeckInputEventType.EncoderTurn

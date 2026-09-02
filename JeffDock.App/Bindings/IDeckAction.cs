@@ -8,6 +8,8 @@ internal interface IDeckAction
 
     string DisplayName { get; }
 
+    DeckActionGroup Group { get; }
+
     bool Supports(DeckInputEventType triggerEventType);
 
     void Execute(DeckActionContext context);

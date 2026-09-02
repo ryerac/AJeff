@@ -18,9 +18,11 @@ internal sealed class SceneCycleAction(
 
     public string DisplayName => displayName;
 
+    public DeckActionGroup Group => DeckActionGroups.Scenes;
+
     public bool Supports(DeckInputEventType triggerEventType)
     {
-        return triggerEventType == DeckInputEventType.ButtonPress;
+        return triggerEventType is DeckInputEventType.ButtonPress or DeckInputEventType.EncoderPress;
     }
 
     public void Execute(DeckActionContext context)

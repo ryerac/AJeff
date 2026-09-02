@@ -23,6 +23,15 @@ public sealed class WindowsVolumeController : IDisposable
         volume.Mute = !volume.Mute;
     }
 
+    public void ToggleMicrophoneMute()
+    {
+        using var enumerator = new MMDeviceEnumerator();
+        using var defaultCaptureDevice = enumerator.GetDefaultAudioEndpoint(DataFlow.Capture, Role.Communications);
+
+        var volume = defaultCaptureDevice.AudioEndpointVolume;
+        volume.Mute = !volume.Mute;
+    }
+
     public void Dispose()
     {
     }

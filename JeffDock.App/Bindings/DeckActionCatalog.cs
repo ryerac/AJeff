@@ -18,6 +18,9 @@ internal sealed class DeckActionCatalog : IDisposable
             new NoAction(),
             new VolumeAdjustAction(_volumeController),
             new ToggleMuteAction(_volumeController),
+            new ToggleMicrophoneMuteAction(_volumeController),
+            new VolumeStepAction(_volumeController, VolumeStepAction.UpActionId, "Volume Up", 1),
+            new VolumeStepAction(_volumeController, VolumeStepAction.DownActionId, "Volume Down", -1),
             new SceneCycleAction(bindingStore, SceneCycleAction.NextActionId, "Next Scene", 1),
             new SceneCycleAction(bindingStore, SceneCycleAction.PreviousActionId, "Previous Scene", -1),
         ];
@@ -28,6 +31,23 @@ internal sealed class DeckActionCatalog : IDisposable
     public IReadOnlyList<IDeckAction> GetActionsFor(DeckInputEventType triggerEventType)
     {
         return _actions.Where(action => action.Supports(triggerEventType)).ToList();
+    }
+
+    public IReadOnlyList<DeckActionGroup> GetGroupsFor(DeckInputEventType triggerEventType)
+    {
+        return _actions
+            .Where(action => action.Supports(triggerEventType))
+            .Select(action => action.Group)
+            .DistinctBy(group => group.Id, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    public IReadOnlyList<IDeckAction> GetActionsFor(DeckInputEventType triggerEventType, string groupId)
+    {
+        return _actions
+            .Where(action => action.Supports(triggerEventType)
+                             && string.Equals(action.Group.Id, groupId, StringComparison.OrdinalIgnoreCase))
+            .ToList();
     }
 
     public IDeckAction GetAction(string actionId)

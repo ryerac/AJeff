@@ -83,12 +83,28 @@
 
                         <StackPanel x:Name="TurnBindingRow" Orientation="Horizontal" Margin="0,0,0,8" Visibility="Collapsed">
                             <TextBlock Text="Turn Action" Width="100" VerticalAlignment="Center" />
-                            <ComboBox x:Name="TurnActionComboBox" Width="200" DisplayMemberPath="DisplayName" SelectionChanged="TurnActionComboBox_OnSelectionChanged" />
+                            <ComboBox x:Name="TurnActionGroupComboBox"
+                                      Width="110"
+                                      DisplayMemberPath="DisplayName"
+                                      SelectionChanged="TurnActionGroupComboBox_OnSelectionChanged" />
+                            <ComboBox x:Name="TurnActionComboBox"
+                                      Width="160"
+                                      Margin="8,0,0,0"
+                                      DisplayMemberPath="DisplayName"
+                                      SelectionChanged="TurnActionComboBox_OnSelectionChanged" />
                         </StackPanel>
 
                         <StackPanel x:Name="PressBindingRow" Orientation="Horizontal" Visibility="Collapsed">
                             <TextBlock x:Name="PressBindingLabel" Text="Press Action" Width="100" VerticalAlignment="Center" />
-                            <ComboBox x:Name="PressActionComboBox" Width="200" DisplayMemberPath="DisplayName" SelectionChanged="PressActionComboBox_OnSelectionChanged" />
+                            <ComboBox x:Name="PressActionGroupComboBox"
+                                      Width="110"
+                                      DisplayMemberPath="DisplayName"
+                                      SelectionChanged="PressActionGroupComboBox_OnSelectionChanged" />
+                            <ComboBox x:Name="PressActionComboBox"
+                                      Width="160"
+                                      Margin="8,0,0,0"
+                                      DisplayMemberPath="DisplayName"
+                                      SelectionChanged="PressActionComboBox_OnSelectionChanged" />
                         </StackPanel>
                     </StackPanel>
                 </Border>
