@@ -72,7 +72,8 @@
 
                         <StackPanel x:Name="IconBindingRow" Orientation="Horizontal" Margin="0,0,0,8" Visibility="Collapsed">
                             <TextBlock Text="Icon" Width="100" VerticalAlignment="Center" />
-                            <Button Content="Upload Icon..." Padding="12,4" Click="UploadIconButton_OnClick" />
+                            <Button Content="Library..." Padding="12,4" Click="IconLibraryButton_OnClick" />
+                            <Button Content="Upload Icon..." Margin="8,0,0,0" Padding="12,4" Click="UploadIconButton_OnClick" />
                             <Button x:Name="RemoveIconButton"
                                     Content="Remove"
                                     Margin="8,0,0,0"

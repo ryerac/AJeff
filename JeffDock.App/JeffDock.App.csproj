@@ -4,6 +4,13 @@
     <ProjectReference Include="..\JeffDock.Core\JeffDock.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Resource Include="Assets\Icons\Packs\**\*.png" />
+    <Resource Include="Assets\Icons\Packs\**\*.jpg" />
+    <Resource Include="Assets\Icons\Packs\**\*.jpeg" />
+    <Resource Include="Assets\Icons\Packs\**\pack.json" />
+  </ItemGroup>
+
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>

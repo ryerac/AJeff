@@ -22,6 +22,17 @@ internal sealed class DeckIconStore
 
     public string SaveIcon(string deviceId, string sceneId, int buttonIndex, string sourcePath)
     {
+        return SaveIcon(deviceId, sceneId, buttonIndex, LoadBitmap(sourcePath));
+    }
+
+    public string SaveIcon(string deviceId, string sceneId, int buttonIndex, byte[] imageBytes)
+    {
+        using var stream = new MemoryStream(imageBytes, writable: false);
+        return SaveIcon(deviceId, sceneId, buttonIndex, LoadBitmap(stream));
+    }
+
+    private string SaveIcon(string deviceId, string sceneId, int buttonIndex, BitmapSource source)
+    {
         var iconDirectory = GetIconDirectory(deviceId, sceneId);
         Directory.CreateDirectory(iconDirectory);
 
@@ -30,7 +41,6 @@ internal sealed class DeckIconStore
 
         try
         {
-            var source = LoadBitmap(sourcePath);
             var rendered = RenderSquareIcon(source);
             var encoder = new JpegBitmapEncoder { QualityLevel = 90 };
             encoder.Frames.Add(BitmapFrame.Create(rendered));
@@ -119,6 +129,17 @@ internal sealed class DeckIconStore
         bitmap.BeginInit();
         bitmap.CacheOption = BitmapCacheOption.OnLoad;
         bitmap.UriSource = new Uri(sourcePath, UriKind.Absolute);
+        bitmap.EndInit();
+        bitmap.Freeze();
+        return bitmap;
+    }
+
+    private static BitmapSource LoadBitmap(Stream sourceStream)
+    {
+        var bitmap = new BitmapImage();
+        bitmap.BeginInit();
+        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+        bitmap.StreamSource = sourceStream;
         bitmap.EndInit();
         bitmap.Freeze();
         return bitmap;

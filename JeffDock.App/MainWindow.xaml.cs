@@ -5,6 +5,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using JeffDock.App.Bindings;
+using JeffDock.App.Icons;
 using JeffDock.Core.Deck;
 
 namespace JeffDock.App;
@@ -14,6 +15,7 @@ public partial class MainWindow : Window
     private readonly DeckMonitorService _monitor;
     private readonly DeckBindingStore _bindingStore;
     private readonly DeckIconStore _iconStore;
+    private readonly IconLibraryCatalog _iconLibraryCatalog;
     private readonly DeckActionCatalog _actionCatalog;
     private readonly DeckActionExecutor _actionExecutor;
     private readonly Dictionary<(DeckControlType ControlType, int ControlIndex), Border> _controlVisuals = new();
@@ -32,6 +34,7 @@ public partial class MainWindow : Window
 
         _bindingStore = new DeckBindingStore();
         _iconStore = new DeckIconStore();
+        _iconLibraryCatalog = new IconLibraryCatalog();
         _bindingStore.ActiveSceneChanged += OnActiveSceneChanged;
         _actionCatalog = new DeckActionCatalog(_bindingStore);
         _actionExecutor = new DeckActionExecutor(_actionCatalog);
@@ -219,6 +222,43 @@ public partial class MainWindow : Window
         catch (Exception exception)
         {
             MessageBox.Show(this, $"The icon could not be saved.\n\n{exception.Message}", "Upload Icon", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void IconLibraryButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        var device = GetSelectedDevice();
+        if (device is null
+            || _selectedControl is not { ControlType: DeckControlType.Button } selectedControl
+            || !_controlLayouts.TryGetValue(selectedControl, out var layout)
+            || !layout.CanHaveIcon)
+        {
+            return;
+        }
+
+        if (_iconLibraryCatalog.Icons.Count == 0)
+        {
+            MessageBox.Show(this, "No bundled icons were found.", "Icon Library", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var dialog = new IconLibraryDialog(_iconLibraryCatalog.Icons) { Owner = this };
+        if (dialog.ShowDialog() != true || dialog.SelectedIcon is not { } icon)
+        {
+            return;
+        }
+
+        try
+        {
+            var scene = _bindingStore.GetActiveScene(device);
+            _iconStore.SaveIcon(device.DeviceId, scene.Id, selectedControl.ControlIndex, icon.ImageBytes);
+            RefreshButtonIcons();
+            RefreshBindingEditor();
+            QueueIconSync(device);
+        }
+        catch (Exception exception)
+        {
+            MessageBox.Show(this, $"The icon could not be saved.\n\n{exception.Message}", "Icon Library", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
