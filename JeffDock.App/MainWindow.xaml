@@ -43,6 +43,27 @@
 
                 <Border DockPanel.Dock="Top" BorderBrush="#E3E3E3" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,10" Background="#FAFAFA">
                     <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <TextBlock Text="Scene" Width="100" VerticalAlignment="Center" />
+                            <ComboBox x:Name="SceneComboBox"
+                                      Width="180"
+                                      DisplayMemberPath="Name"
+                                      SelectionChanged="SceneComboBox_OnSelectionChanged" />
+                            <Button Content="New" Margin="8,0,0,0" Padding="12,4" Click="NewSceneButton_OnClick" />
+                            <Button x:Name="RenameSceneButton"
+                                    Content="Rename"
+                                    Margin="8,0,0,0"
+                                    Padding="12,4"
+                                    IsEnabled="False"
+                                    Click="RenameSceneButton_OnClick" />
+                            <Button x:Name="DeleteSceneButton"
+                                    Content="Delete"
+                                    Margin="8,0,0,0"
+                                    Padding="12,4"
+                                    IsEnabled="False"
+                                    Click="DeleteSceneButton_OnClick" />
+                        </StackPanel>
+
                         <TextBlock x:Name="SelectedControlText"
                                    Text="Selected Control: none"
                                    FontSize="14"
@@ -51,12 +72,12 @@
 
                         <StackPanel x:Name="TurnBindingRow" Orientation="Horizontal" Margin="0,0,0,8" Visibility="Collapsed">
                             <TextBlock Text="Turn Action" Width="100" VerticalAlignment="Center" />
-                            <ComboBox x:Name="TurnActionComboBox" Width="200" SelectionChanged="TurnActionComboBox_OnSelectionChanged" />
+                            <ComboBox x:Name="TurnActionComboBox" Width="200" DisplayMemberPath="DisplayName" SelectionChanged="TurnActionComboBox_OnSelectionChanged" />
                         </StackPanel>
 
                         <StackPanel x:Name="PressBindingRow" Orientation="Horizontal" Visibility="Collapsed">
                             <TextBlock x:Name="PressBindingLabel" Text="Press Action" Width="100" VerticalAlignment="Center" />
-                            <ComboBox x:Name="PressActionComboBox" Width="200" SelectionChanged="PressActionComboBox_OnSelectionChanged" />
+                            <ComboBox x:Name="PressActionComboBox" Width="200" DisplayMemberPath="DisplayName" SelectionChanged="PressActionComboBox_OnSelectionChanged" />
                         </StackPanel>
                     </StackPanel>
                 </Border>

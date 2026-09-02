@@ -12,6 +12,7 @@ public partial class MainWindow : Window
 {
     private readonly DeckMonitorService _monitor;
     private readonly DeckBindingStore _bindingStore;
+    private readonly DeckActionCatalog _actionCatalog;
     private readonly DeckActionExecutor _actionExecutor;
     private readonly Dictionary<(DeckControlType ControlType, int ControlIndex), Border> _controlVisuals = new();
     private readonly Dictionary<(DeckControlType ControlType, int ControlIndex), DeckControlLayout> _controlLayouts = new();
@@ -21,25 +22,16 @@ public partial class MainWindow : Window
     private (DeckControlType ControlType, int ControlIndex)? _selectedControl;
     private string? _selectedDeviceId;
     private bool _isUpdatingBindingEditor;
-
-    private static readonly DeckBindingActionKind[] TurnActions =
-    [
-        DeckBindingActionKind.None,
-        DeckBindingActionKind.VolumeAdjust,
-    ];
-
-    private static readonly DeckBindingActionKind[] PressActions =
-    [
-        DeckBindingActionKind.None,
-        DeckBindingActionKind.ToggleMute,
-    ];
+    private bool _isUpdatingSceneEditor;
 
     public MainWindow()
     {
         InitializeComponent();
 
         _bindingStore = new DeckBindingStore();
-        _actionExecutor = new DeckActionExecutor();
+        _bindingStore.ActiveSceneChanged += OnActiveSceneChanged;
+        _actionCatalog = new DeckActionCatalog(_bindingStore);
+        _actionExecutor = new DeckActionExecutor(_actionCatalog);
         _monitor = new DeckMonitorService(DeckProfileCatalog.SupportedProfiles, maxLinesPerDevice: 100);
         _monitor.DevicesChanged += OnDevicesChanged;
         _monitor.DeviceLogChanged += OnDeviceLogChanged;
@@ -54,31 +46,33 @@ public partial class MainWindow : Window
         _monitor.DevicesChanged -= OnDevicesChanged;
         _monitor.DeviceLogChanged -= OnDeviceLogChanged;
         _monitor.InputEventReceived -= OnInputEventReceived;
+        _bindingStore.ActiveSceneChanged -= OnActiveSceneChanged;
         _monitor.Dispose();
-        _actionExecutor.Dispose();
+        _actionCatalog.Dispose();
         base.OnClosed(e);
     }
 
     private void DevicesListBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         _selectedDeviceId = (DevicesListBox.SelectedItem as MonitoredDeckDevice)?.DeviceId;
+        RefreshSceneEditor();
         RefreshBindingEditor();
         RefreshLogs();
     }
 
     private void TurnActionComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_isUpdatingBindingEditor || TurnActionComboBox.SelectedItem is not DeckBindingActionKind action)
+        if (_isUpdatingBindingEditor || TurnActionComboBox.SelectedItem is not IDeckAction action)
         {
             return;
         }
 
-        SaveBinding(DeckInputEventType.EncoderTurn, action);
+        SaveBinding(DeckInputEventType.EncoderTurn, action.Id);
     }
 
     private void PressActionComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_isUpdatingBindingEditor || PressActionComboBox.SelectedItem is not DeckBindingActionKind action)
+        if (_isUpdatingBindingEditor || PressActionComboBox.SelectedItem is not IDeckAction action)
         {
             return;
         }
@@ -87,7 +81,117 @@ public partial class MainWindow : Window
             ? DeckInputEventType.ButtonPress
             : DeckInputEventType.EncoderPress;
 
-        SaveBinding(triggerEventType, action);
+        SaveBinding(triggerEventType, action.Id);
+    }
+
+    private void SceneComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isUpdatingSceneEditor || SceneComboBox.SelectedItem is not DeckScene scene)
+        {
+            return;
+        }
+
+        var device = GetSelectedDevice();
+        if (device is null)
+        {
+            return;
+        }
+
+        _bindingStore.SetActiveScene(device, scene.Id);
+    }
+
+    private void NewSceneButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        var device = GetSelectedDevice();
+        if (device is null)
+        {
+            return;
+        }
+
+        var dialog = new SceneNameDialog { Owner = this };
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        try
+        {
+            _bindingStore.CreateScene(device, dialog.SceneName);
+        }
+        catch (ArgumentException exception)
+        {
+            MessageBox.Show(this, exception.Message, "New Scene", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+    }
+
+    private void DeleteSceneButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        var device = GetSelectedDevice();
+        if (device is null || SceneComboBox.SelectedItem is not DeckScene scene || scene.IsDefault)
+        {
+            return;
+        }
+
+        var result = MessageBox.Show(
+            this,
+            $"Delete the '{scene.Name}' scene and all of its bindings?",
+            "Delete Scene",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+
+        if (result != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        _bindingStore.DeleteScene(device, scene.Id);
+    }
+
+    private void RenameSceneButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        var device = GetSelectedDevice();
+        if (device is null || SceneComboBox.SelectedItem is not DeckScene scene || scene.IsDefault)
+        {
+            return;
+        }
+
+        var dialog = new SceneNameDialog("Rename Scene", "Rename", scene.Name) { Owner = this };
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        try
+        {
+            _bindingStore.RenameScene(device, scene.Id, dialog.SceneName);
+            RefreshSceneEditor();
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        {
+            MessageBox.Show(this, exception.Message, "Rename Scene", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+    }
+
+    private void OnActiveSceneChanged(MonitoredDeckDevice device)
+    {
+        if (_selectedDeviceId is null || !string.Equals(_selectedDeviceId, device.DeviceId, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (Dispatcher.CheckAccess())
+        {
+            RefreshSceneEditor();
+            RefreshBindingEditor();
+            return;
+        }
+
+        _ = Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+        {
+            RefreshSceneEditor();
+            RefreshBindingEditor();
+        }));
     }
 
     private void OnDevicesChanged()
@@ -119,6 +223,7 @@ public partial class MainWindow : Window
             SelectedDeviceTitle.Text = "Raw Input Log";
             LogListBox.ItemsSource = new[] { "No supported device connected." };
             RenderFaceplate(null);
+            RefreshSceneEditor();
             RefreshBindingEditor();
             return;
         }
@@ -132,6 +237,7 @@ public partial class MainWindow : Window
 
         RenderFaceplate(selected.Layout);
         EnsureSelectedControl(selected.Layout);
+        RefreshSceneEditor();
         RefreshBindingEditor();
         RefreshLogs();
     }
@@ -290,21 +396,21 @@ public partial class MainWindow : Window
             if (selectedControl.ControlType == DeckControlType.Encoder)
             {
                 TurnBindingRow.Visibility = Visibility.Visible;
-                TurnActionComboBox.ItemsSource = TurnActions;
-                TurnActionComboBox.SelectedItem = _bindingStore.GetAction(device, DeckControlType.Encoder, selectedControl.ControlIndex, DeckInputEventType.EncoderTurn);
+                TurnActionComboBox.ItemsSource = _actionCatalog.GetActionsFor(DeckInputEventType.EncoderTurn);
+                TurnActionComboBox.SelectedItem = _actionCatalog.GetAction(_bindingStore.GetActionId(device, DeckControlType.Encoder, selectedControl.ControlIndex, DeckInputEventType.EncoderTurn));
 
                 PressBindingRow.Visibility = Visibility.Visible;
                 PressBindingLabel.Text = "Press Action";
-                PressActionComboBox.ItemsSource = PressActions;
-                PressActionComboBox.SelectedItem = _bindingStore.GetAction(device, DeckControlType.Encoder, selectedControl.ControlIndex, DeckInputEventType.EncoderPress);
+                PressActionComboBox.ItemsSource = _actionCatalog.GetActionsFor(DeckInputEventType.EncoderPress);
+                PressActionComboBox.SelectedItem = _actionCatalog.GetAction(_bindingStore.GetActionId(device, DeckControlType.Encoder, selectedControl.ControlIndex, DeckInputEventType.EncoderPress));
             }
             else
             {
                 TurnBindingRow.Visibility = Visibility.Collapsed;
                 PressBindingRow.Visibility = Visibility.Visible;
                 PressBindingLabel.Text = "Button Action";
-                PressActionComboBox.ItemsSource = PressActions;
-                PressActionComboBox.SelectedItem = _bindingStore.GetAction(device, DeckControlType.Button, selectedControl.ControlIndex, DeckInputEventType.ButtonPress);
+                PressActionComboBox.ItemsSource = _actionCatalog.GetActionsFor(DeckInputEventType.ButtonPress);
+                PressActionComboBox.SelectedItem = _actionCatalog.GetAction(_bindingStore.GetActionId(device, DeckControlType.Button, selectedControl.ControlIndex, DeckInputEventType.ButtonPress));
             }
         }
         finally
@@ -313,7 +419,35 @@ public partial class MainWindow : Window
         }
     }
 
-    private void SaveBinding(DeckInputEventType triggerEventType, DeckBindingActionKind action)
+    private void RefreshSceneEditor()
+    {
+        _isUpdatingSceneEditor = true;
+
+        try
+        {
+            var device = GetSelectedDevice();
+            if (device is null)
+            {
+                SceneComboBox.ItemsSource = null;
+                RenameSceneButton.IsEnabled = false;
+                DeleteSceneButton.IsEnabled = false;
+                return;
+            }
+
+            var scenes = _bindingStore.GetScenes(device);
+            var activeScene = _bindingStore.GetActiveScene(device);
+            SceneComboBox.ItemsSource = scenes;
+            SceneComboBox.SelectedItem = scenes.First(scene => string.Equals(scene.Id, activeScene.Id, StringComparison.OrdinalIgnoreCase));
+            RenameSceneButton.IsEnabled = !activeScene.IsDefault;
+            DeleteSceneButton.IsEnabled = !activeScene.IsDefault;
+        }
+        finally
+        {
+            _isUpdatingSceneEditor = false;
+        }
+    }
+
+    private void SaveBinding(DeckInputEventType triggerEventType, string actionId)
     {
         var device = GetSelectedDevice();
         if (device is null || _selectedControl is not { } selectedControl)
@@ -321,7 +455,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        _bindingStore.SetAction(device, selectedControl.ControlType, selectedControl.ControlIndex, triggerEventType, action);
+        _bindingStore.SetAction(device, selectedControl.ControlType, selectedControl.ControlIndex, triggerEventType, actionId);
     }
 
     private MonitoredDeckDevice? GetSelectedDevice()
