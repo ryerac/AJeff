@@ -1,0 +1,39 @@
+<Window x:Class="JeffDock.App.KeyboardShortcutDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Record Keyboard Shortcut"
+        Height="240"
+        Width="460"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        PreviewKeyDown="Window_OnPreviewKeyDown">
+    <DockPanel Margin="18">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Content="Cancel" Width="88" Padding="10,5" IsCancel="True" />
+            <Button x:Name="SaveButton"
+                    Content="Save"
+                    Width="88"
+                    Padding="10,5"
+                    Margin="8,0,0,0"
+                    IsEnabled="False"
+                    Click="SaveButton_OnClick" />
+        </StackPanel>
+
+        <StackPanel>
+            <TextBlock Text="Press a key or key combination" FontSize="16" FontWeight="SemiBold" />
+            <TextBlock Text="The shortcut is sent to whichever application has focus when you press the deck button."
+                       Foreground="#666"
+                       TextWrapping="Wrap"
+                       Margin="0,6,0,14" />
+            <Border Background="#F2F2F2" BorderBrush="#CCC" BorderThickness="1" CornerRadius="6" Padding="14">
+                <TextBlock x:Name="ShortcutText"
+                           Text="Waiting for input..."
+                           FontFamily="Consolas"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           HorizontalAlignment="Center" />
+            </Border>
+        </StackPanel>
+    </DockPanel>
+</Window>

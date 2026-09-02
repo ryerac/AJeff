@@ -8,5 +8,7 @@ internal static class DeckActionGroups
 
     public static DeckActionGroup Audio { get; } = new("core.audio", "Audio");
 
+    public static DeckActionGroup Keyboard { get; } = new("core.keyboard", "Keyboard");
+
     public static DeckActionGroup Scenes { get; } = new("scenes", "Scenes");
 }

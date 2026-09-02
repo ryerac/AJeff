@@ -19,7 +19,8 @@ internal interface IDeckAction
 
 internal readonly record struct DeckActionContext(
     MonitoredDeckDevice Device,
-    DeckInputEvent InputEvent
+    DeckInputEvent InputEvent,
+    IReadOnlyDictionary<string, string> Parameters
 );
 
 internal sealed record DeckActionVisualDefinition(

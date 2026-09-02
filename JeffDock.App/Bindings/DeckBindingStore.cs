@@ -13,6 +13,7 @@ internal sealed class DeckBindingStore
     private readonly object _sync = new();
     private readonly string _filePath;
     private readonly Dictionary<DeckBindingKey, string> _bindings = new();
+    private readonly Dictionary<DeckBindingKey, Dictionary<string, string>> _actionParameters = new();
     private readonly Dictionary<DeckIconBindingKey, DeckIconMode> _iconBindings = new();
     private readonly Dictionary<string, List<DeckScene>> _scenesByDevice = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _activeSceneByDevice = new(StringComparer.OrdinalIgnoreCase);
@@ -174,6 +175,7 @@ internal sealed class DeckBindingStore
                          .ToList())
             {
                 _bindings.Remove(key);
+                _actionParameters.Remove(key);
             }
 
             foreach (var key in _iconBindings.Keys
@@ -219,7 +221,65 @@ internal sealed class DeckBindingStore
         lock (_sync)
         {
             var key = new DeckBindingKey(device.DeviceId, GetActiveSceneId(device.DeviceId), controlType, controlIndex, triggerEventType);
+            if (!_bindings.TryGetValue(key, out var previousActionId)
+                || !string.Equals(previousActionId, actionId, StringComparison.OrdinalIgnoreCase))
+            {
+                _actionParameters.Remove(key);
+            }
+
             _bindings[key] = actionId;
+            Save();
+        }
+    }
+
+    public IReadOnlyDictionary<string, string> GetActionParameters(
+        MonitoredDeckDevice device,
+        DeckControlType controlType,
+        int controlIndex,
+        DeckInputEventType triggerEventType)
+    {
+        lock (_sync)
+        {
+            var key = new DeckBindingKey(device.DeviceId, GetActiveSceneId(device.DeviceId), controlType, controlIndex, triggerEventType);
+            return _actionParameters.TryGetValue(key, out var parameters)
+                ? new Dictionary<string, string>(parameters, StringComparer.OrdinalIgnoreCase)
+                : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
+    public void SetActionParameter(
+        MonitoredDeckDevice device,
+        DeckControlType controlType,
+        int controlIndex,
+        DeckInputEventType triggerEventType,
+        string name,
+        string? value)
+    {
+        lock (_sync)
+        {
+            var key = new DeckBindingKey(device.DeviceId, GetActiveSceneId(device.DeviceId), controlType, controlIndex, triggerEventType);
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                if (_actionParameters.TryGetValue(key, out var existing))
+                {
+                    existing.Remove(name);
+                    if (existing.Count == 0)
+                    {
+                        _actionParameters.Remove(key);
+                    }
+                }
+            }
+            else
+            {
+                if (!_actionParameters.TryGetValue(key, out var parameters))
+                {
+                    parameters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    _actionParameters[key] = parameters;
+                }
+
+                parameters[name] = value;
+            }
+
             Save();
         }
     }
@@ -288,6 +348,7 @@ internal sealed class DeckBindingStore
         catch
         {
             _bindings.Clear();
+            _actionParameters.Clear();
             _iconBindings.Clear();
             _scenesByDevice.Clear();
             _activeSceneByDevice.Clear();
@@ -410,6 +471,10 @@ internal sealed class DeckBindingStore
     {
         var key = new DeckBindingKey(deviceId, sceneId, binding.ControlType, binding.ControlIndex, binding.TriggerEventType);
         _bindings[key] = binding.ActionId;
+        if (binding.Parameters is { Count: > 0 })
+        {
+            _actionParameters[key] = new Dictionary<string, string>(binding.Parameters, StringComparer.OrdinalIgnoreCase);
+        }
     }
 
     private List<DeckScene> EnsureScenes(string deviceId)
@@ -455,7 +520,10 @@ internal sealed class DeckBindingStore
                                 entry.Key.ControlType,
                                 entry.Key.ControlIndex,
                                 entry.Key.TriggerEventType,
-                                entry.Value))
+                                entry.Value,
+                                _actionParameters.TryGetValue(entry.Key, out var parameters)
+                                    ? parameters
+                                    : null))
                             .OrderBy(binding => binding.ControlType)
                             .ThenBy(binding => binding.ControlIndex)
                             .ThenBy(binding => binding.TriggerEventType)

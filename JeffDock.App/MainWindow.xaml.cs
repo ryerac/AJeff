@@ -6,6 +6,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using JeffDock.App.Bindings;
+using JeffDock.App.Bindings.Core;
 using JeffDock.App.Icons;
 using JeffDock.Core.Deck;
 
@@ -123,6 +124,48 @@ public partial class MainWindow : Window
             : DeckInputEventType.EncoderPress;
 
         ChangeActionGroup(triggerEventType, group, PressActionComboBox);
+    }
+
+    private void RecordKeyboardShortcutButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (!TryGetSelectedPressBinding(out var device, out var controlType, out var controlIndex, out var eventType))
+        {
+            return;
+        }
+
+        var parameters = _bindingStore.GetActionParameters(device, controlType, controlIndex, eventType);
+        KeyboardShortcut.TryParse(parameters.GetValueOrDefault(KeyboardShortcutAction.ShortcutParameter), out var currentShortcut);
+        var dialog = new KeyboardShortcutDialog(currentShortcut) { Owner = this };
+        if (dialog.ShowDialog() != true || dialog.Shortcut is null)
+        {
+            return;
+        }
+
+        _bindingStore.SetActionParameter(
+            device,
+            controlType,
+            controlIndex,
+            eventType,
+            KeyboardShortcutAction.ShortcutParameter,
+            dialog.Shortcut.Serialize());
+        RefreshBindingEditor();
+    }
+
+    private void ClearKeyboardShortcutButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (!TryGetSelectedPressBinding(out var device, out var controlType, out var controlIndex, out var eventType))
+        {
+            return;
+        }
+
+        _bindingStore.SetActionParameter(
+            device,
+            controlType,
+            controlIndex,
+            eventType,
+            KeyboardShortcutAction.ShortcutParameter,
+            null);
+        RefreshBindingEditor();
     }
 
     private void SceneComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -666,6 +709,7 @@ public partial class MainWindow : Window
                 PressActionComboBox.ItemsSource = null;
                 TurnActionGroupComboBox.ItemsSource = null;
                 PressActionGroupComboBox.ItemsSource = null;
+                KeyboardShortcutRow.Visibility = Visibility.Collapsed;
                 return;
             }
 
@@ -704,11 +748,71 @@ public partial class MainWindow : Window
                     PressActionGroupComboBox,
                     PressActionComboBox);
             }
+
+            ConfigureKeyboardShortcutEditor(device, selectedControl.ControlType, selectedControl.ControlIndex);
         }
         finally
         {
             _isUpdatingBindingEditor = false;
         }
+    }
+
+    private void ConfigureKeyboardShortcutEditor(MonitoredDeckDevice device, DeckControlType controlType, int controlIndex)
+    {
+        var eventType = controlType == DeckControlType.Button
+            ? DeckInputEventType.ButtonPress
+            : DeckInputEventType.EncoderPress;
+        var actionId = _bindingStore.GetActionId(device, controlType, controlIndex, eventType);
+        var isKeyboardShortcut = string.Equals(actionId, KeyboardShortcutAction.ActionId, StringComparison.OrdinalIgnoreCase);
+        KeyboardShortcutRow.Visibility = isKeyboardShortcut ? Visibility.Visible : Visibility.Collapsed;
+        if (!isKeyboardShortcut)
+        {
+            KeyboardShortcutTextBox.Text = string.Empty;
+            ClearKeyboardShortcutButton.IsEnabled = false;
+            return;
+        }
+
+        var parameters = _bindingStore.GetActionParameters(device, controlType, controlIndex, eventType);
+        var value = parameters.GetValueOrDefault(KeyboardShortcutAction.ShortcutParameter);
+        var hasShortcut = KeyboardShortcut.TryParse(value, out var shortcut) && shortcut is not null;
+        KeyboardShortcutTextBox.Text = hasShortcut ? shortcut!.ToString() : "Not configured";
+        ClearKeyboardShortcutButton.IsEnabled = hasShortcut;
+    }
+
+    private bool TryGetSelectedPressBinding(
+        out MonitoredDeckDevice device,
+        out DeckControlType controlType,
+        out int controlIndex,
+        out DeckInputEventType eventType)
+    {
+        device = null!;
+        controlType = default;
+        controlIndex = default;
+        eventType = default;
+
+        if (GetSelectedDevice() is not { } selectedDevice || _selectedControl is not { } selectedControl)
+        {
+            return false;
+        }
+
+        var selectedEventType = selectedControl.ControlType == DeckControlType.Button
+            ? DeckInputEventType.ButtonPress
+            : DeckInputEventType.EncoderPress;
+        var actionId = _bindingStore.GetActionId(
+            selectedDevice,
+            selectedControl.ControlType,
+            selectedControl.ControlIndex,
+            selectedEventType);
+        if (!string.Equals(actionId, KeyboardShortcutAction.ActionId, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        device = selectedDevice;
+        controlType = selectedControl.ControlType;
+        controlIndex = selectedControl.ControlIndex;
+        eventType = selectedEventType;
+        return true;
     }
 
     private void ConfigureIconEditor(MonitoredDeckDevice device, int controlIndex)

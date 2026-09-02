@@ -226,7 +226,14 @@ public sealed class DeckMonitorService : IDisposable
 
                 if (evt.Type != DeckInputEventType.Unknown)
                 {
-                    InputEventReceived?.Invoke(BuildMonitoredDevice(session), evt);
+                    try
+                    {
+                        InputEventReceived?.Invoke(BuildMonitoredDevice(session), evt);
+                    }
+                    catch (Exception exception)
+                    {
+                        AddLogLine(session, $"input handler failed: {exception.Message}");
+                    }
                 }
             }
             catch (TimeoutException)

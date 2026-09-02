@@ -23,6 +23,7 @@ internal sealed class DeckActionCatalog : IDisposable
             new VolumeAdjustAction(_volumeController),
             new ToggleMuteAction(_volumeController),
             new ToggleMicrophoneMuteAction(_volumeController),
+            new KeyboardShortcutAction(),
             new VolumeStepAction(_volumeController, VolumeStepAction.UpActionId, "Volume Up", 1),
             new VolumeStepAction(_volumeController, VolumeStepAction.DownActionId, "Volume Down", -1),
             new SceneCycleAction(bindingStore, SceneCycleAction.NextActionId, "Next Scene", 1),

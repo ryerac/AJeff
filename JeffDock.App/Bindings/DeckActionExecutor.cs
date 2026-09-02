@@ -16,7 +16,8 @@ internal sealed class DeckActionExecutor(DeckActionCatalog actionCatalog)
         var action = actionCatalog.GetAction(actionId);
         if (action.Supports(evt.Type))
         {
-            action.Execute(new DeckActionContext(device, evt));
+            var parameters = bindingStore.GetActionParameters(device, controlType.Value, evt.ControlIndex, evt.Type);
+            action.Execute(new DeckActionContext(device, evt, parameters));
         }
     }
 

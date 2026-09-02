@@ -118,6 +118,26 @@
                                       DisplayMemberPath="DisplayName"
                                       SelectionChanged="PressActionComboBox_OnSelectionChanged" />
                         </StackPanel>
+
+                        <StackPanel x:Name="KeyboardShortcutRow"
+                                    Orientation="Horizontal"
+                                    Margin="100,8,0,0"
+                                    Visibility="Collapsed">
+                            <TextBox x:Name="KeyboardShortcutTextBox"
+                                     Width="180"
+                                     IsReadOnly="True"
+                                     VerticalContentAlignment="Center"
+                                     ToolTip="The shortcut sent to the currently focused application." />
+                            <Button Content="Record..."
+                                    Margin="8,0,0,0"
+                                    Padding="12,4"
+                                    Click="RecordKeyboardShortcutButton_OnClick" />
+                            <Button x:Name="ClearKeyboardShortcutButton"
+                                    Content="Clear"
+                                    Margin="8,0,0,0"
+                                    Padding="12,4"
+                                    Click="ClearKeyboardShortcutButton_OnClick" />
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 

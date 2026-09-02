@@ -40,7 +40,8 @@ internal sealed record StoredDeckBinding(
     DeckControlType ControlType,
     int ControlIndex,
     DeckInputEventType TriggerEventType,
-    string ActionId
+    string ActionId,
+    IReadOnlyDictionary<string, string>? Parameters = null
 );
 
 internal sealed record StoredDeckScene(
