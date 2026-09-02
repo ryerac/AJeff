@@ -21,11 +21,15 @@ public sealed record DeckControlLayout(
     double Y,
     double Width,
     double Height,
-    string Label
+    string Label,
+    bool CanHaveIcon = false
 );
 
 public sealed record DeckLayoutDefinition(
     double Width,
     double Height,
-    IReadOnlyList<DeckControlLayout> Controls
+    IReadOnlyList<DeckControlLayout> Controls,
+    int ButtonImageRotationDegreesClockwise = 0,
+    int ButtonImageOutputWidth = 60,
+    int ButtonImageOutputHeight = 60
 );

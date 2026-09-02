@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using Microsoft.Win32;
 using JeffDock.App.Bindings;
 using JeffDock.Core.Deck;
 
@@ -12,6 +13,7 @@ public partial class MainWindow : Window
 {
     private readonly DeckMonitorService _monitor;
     private readonly DeckBindingStore _bindingStore;
+    private readonly DeckIconStore _iconStore;
     private readonly DeckActionCatalog _actionCatalog;
     private readonly DeckActionExecutor _actionExecutor;
     private readonly Dictionary<(DeckControlType ControlType, int ControlIndex), Border> _controlVisuals = new();
@@ -29,6 +31,7 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         _bindingStore = new DeckBindingStore();
+        _iconStore = new DeckIconStore();
         _bindingStore.ActiveSceneChanged += OnActiveSceneChanged;
         _actionCatalog = new DeckActionCatalog(_bindingStore);
         _actionExecutor = new DeckActionExecutor(_actionCatalog);
@@ -54,8 +57,16 @@ public partial class MainWindow : Window
 
     private void DevicesListBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        _selectedDeviceId = (DevicesListBox.SelectedItem as MonitoredDeckDevice)?.DeviceId;
+        var device = DevicesListBox.SelectedItem as MonitoredDeckDevice;
+        _selectedDeviceId = device?.DeviceId;
+        if (device is not null)
+        {
+            RenderFaceplate(device.Layout);
+            EnsureSelectedControl(device.Layout);
+        }
+
         RefreshSceneEditor();
+        RefreshButtonIcons();
         RefreshBindingEditor();
         RefreshLogs();
     }
@@ -146,6 +157,65 @@ public partial class MainWindow : Window
         }
 
         _bindingStore.DeleteScene(device, scene.Id);
+        _iconStore.DeleteSceneIcons(device.DeviceId, scene.Id);
+    }
+
+    private void UploadIconButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        var device = GetSelectedDevice();
+        if (device is null
+            || _selectedControl is not { ControlType: DeckControlType.Button } selectedControl
+            || !_controlLayouts.TryGetValue(selectedControl, out var layout)
+            || !layout.CanHaveIcon)
+        {
+            return;
+        }
+
+        var dialog = new OpenFileDialog
+        {
+            Title = $"Choose an icon for Button {selectedControl.ControlIndex}",
+            Filter = "Image files|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff|All files|*.*",
+            CheckFileExists = true,
+            Multiselect = false,
+        };
+
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            var scene = _bindingStore.GetActiveScene(device);
+            _iconStore.SaveIcon(device.DeviceId, scene.Id, selectedControl.ControlIndex, dialog.FileName);
+            RefreshButtonIcons();
+            RefreshBindingEditor();
+            QueueIconSync(device);
+        }
+        catch (Exception exception)
+        {
+            MessageBox.Show(this, $"The icon could not be saved.\n\n{exception.Message}", "Upload Icon", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void RemoveIconButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        var device = GetSelectedDevice();
+        if (device is null
+            || _selectedControl is not { ControlType: DeckControlType.Button } selectedControl
+            || !_controlLayouts.TryGetValue(selectedControl, out var layout)
+            || !layout.CanHaveIcon)
+        {
+            return;
+        }
+
+        var scene = _bindingStore.GetActiveScene(device);
+        if (_iconStore.DeleteIcon(device.DeviceId, scene.Id, selectedControl.ControlIndex))
+        {
+            RefreshButtonIcons();
+            RefreshBindingEditor();
+            QueueIconSync(device);
+        }
     }
 
     private void RenameSceneButton_OnClick(object sender, RoutedEventArgs e)
@@ -183,14 +253,18 @@ public partial class MainWindow : Window
         if (Dispatcher.CheckAccess())
         {
             RefreshSceneEditor();
+            RefreshButtonIcons();
             RefreshBindingEditor();
+            QueueIconSync(device);
             return;
         }
 
         _ = Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
         {
             RefreshSceneEditor();
+            RefreshButtonIcons();
             RefreshBindingEditor();
+            QueueIconSync(device);
         }));
     }
 
@@ -238,8 +312,14 @@ public partial class MainWindow : Window
         RenderFaceplate(selected.Layout);
         EnsureSelectedControl(selected.Layout);
         RefreshSceneEditor();
+        RefreshButtonIcons();
         RefreshBindingEditor();
         RefreshLogs();
+
+        foreach (var device in connected.DistinctBy(device => device.DeviceId))
+        {
+            QueueIconSync(device);
+        }
     }
 
     private void RefreshLogs()
@@ -384,6 +464,8 @@ public partial class MainWindow : Window
             if (device is null || _selectedControl is not { } selectedControl || !_controlLayouts.TryGetValue(selectedControl, out var layout))
             {
                 SelectedControlText.Text = "Selected Control: none";
+                IconBindingRow.Visibility = Visibility.Collapsed;
+                RemoveIconButton.IsEnabled = false;
                 TurnBindingRow.Visibility = Visibility.Collapsed;
                 PressBindingRow.Visibility = Visibility.Collapsed;
                 TurnActionComboBox.ItemsSource = null;
@@ -392,6 +474,12 @@ public partial class MainWindow : Window
             }
 
             SelectedControlText.Text = $"Selected Control: {DescribeControl(layout)}";
+            IconBindingRow.Visibility = layout.CanHaveIcon ? Visibility.Visible : Visibility.Collapsed;
+            RemoveIconButton.IsEnabled = layout.CanHaveIcon
+                                         && _iconStore.FindIconPath(
+                                             device.DeviceId,
+                                             _bindingStore.GetActiveScene(device).Id,
+                                             selectedControl.ControlIndex) is not null;
 
             if (selectedControl.ControlType == DeckControlType.Encoder)
             {
@@ -505,14 +593,89 @@ public partial class MainWindow : Window
             BorderBrush = CreateBrush("#777777"),
             BorderThickness = new Thickness(borderThickness),
             CornerRadius = new CornerRadius(cornerRadius),
-            Child = new TextBlock
+            Child = BuildControlLabel(control, foreground),
+        };
+    }
+
+    private void RefreshButtonIcons()
+    {
+        var device = GetSelectedDevice();
+        if (device is null)
+        {
+            return;
+        }
+
+        var scene = _bindingStore.GetActiveScene(device);
+        foreach (var (key, layout) in _controlLayouts.Where(entry => entry.Value.CanHaveIcon))
+        {
+            if (!_controlVisuals.TryGetValue(key, out var border))
             {
-                Text = control.Label,
-                Foreground = foreground,
-                FontWeight = FontWeights.SemiBold,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-            },
+                continue;
+            }
+
+            var iconPath = _iconStore.FindIconPath(device.DeviceId, scene.Id, layout.ControlIndex);
+            border.Child = iconPath is null
+                ? BuildControlLabel(layout, Brushes.Gainsboro)
+                : BuildIconImage(iconPath, layout);
+        }
+    }
+
+    private void QueueIconSync(MonitoredDeckDevice device)
+    {
+        var buttonIndexes = device.Layout.Controls
+            .Where(control => control.ControlType == DeckControlType.Button && control.CanHaveIcon)
+            .Select(control => control.ControlIndex)
+            .ToList();
+
+        if (buttonIndexes.Count == 0)
+        {
+            return;
+        }
+
+        var scene = _bindingStore.GetActiveScene(device);
+        var images = _iconStore.LoadButtonImages(
+            device.DeviceId,
+            scene.Id,
+            buttonIndexes,
+            device.Layout.ButtonImageOutputWidth,
+            device.Layout.ButtonImageOutputHeight,
+            device.Layout.ButtonImageRotationDegreesClockwise);
+        _ = Task.Run(() => _monitor.TrySetButtonImages(device.DeviceId, images));
+    }
+
+    private static FrameworkElement BuildIconImage(string iconPath, DeckControlLayout control)
+    {
+        try
+        {
+            var bitmap = new System.Windows.Media.Imaging.BitmapImage();
+            bitmap.BeginInit();
+            bitmap.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+            bitmap.UriSource = new Uri(iconPath, UriKind.Absolute);
+            bitmap.EndInit();
+            bitmap.Freeze();
+
+            return new Image
+            {
+                Source = bitmap,
+                Stretch = Stretch.UniformToFill,
+                ToolTip = control.Label,
+            };
+        }
+        catch
+        {
+            return BuildControlLabel(control, Brushes.Gainsboro);
+        }
+    }
+
+    private static TextBlock BuildControlLabel(DeckControlLayout control, Brush foreground)
+    {
+        return new TextBlock
+        {
+            Text = control.Label,
+            Foreground = foreground,
+            FontWeight = FontWeights.SemiBold,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
         };
     }
 

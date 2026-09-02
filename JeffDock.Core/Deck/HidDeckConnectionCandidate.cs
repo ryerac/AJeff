@@ -8,5 +8,6 @@ internal sealed record HidDeckConnectionCandidate(
     string DeviceId,
     string DevicePath,
     string? SerialNumber,
-    int InputReportLength
+    int InputReportLength,
+    int OutputReportLength
 );

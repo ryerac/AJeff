@@ -21,6 +21,7 @@ internal static class HidDeckDiscovery
                 var serialNumber = TryGetSerialNumber(device);
                 var deviceId = BuildStableDeviceId(profile, serialNumber, devicePath);
                 var inputReportLength = Math.Max(device.GetMaxInputReportLength(), profile.PreferredInputPacketLength);
+                var outputReportLength = device.GetMaxOutputReportLength();
 
                 candidates.Add(new HidDeckConnectionCandidate(
                     profile,
@@ -28,7 +29,8 @@ internal static class HidDeckDiscovery
                     deviceId,
                     devicePath,
                     serialNumber,
-                    inputReportLength
+                    inputReportLength,
+                    outputReportLength
                 ));
             }
         }

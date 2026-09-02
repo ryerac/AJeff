@@ -12,6 +12,7 @@ public sealed class DeckMonitorService : IDisposable
         public required Task ReadTask { get; set; }
         public Queue<string> LogLines { get; } = new();
         public object LogLock { get; } = new();
+        public object OutputLock { get; } = new();
     }
 
     private readonly IReadOnlyList<IDeckProtocolProfile> _profiles;
@@ -61,6 +62,45 @@ public sealed class DeckMonitorService : IDisposable
         lock (session.LogLock)
         {
             return session.LogLines.ToList();
+        }
+    }
+
+    public bool TrySetButtonImages(string deviceId, IReadOnlyDictionary<int, byte[]> jpegImages, int brightness = 80)
+    {
+        var session = _sessions.Values
+            .Where(candidate => string.Equals(candidate.Connection.DeviceId, deviceId, StringComparison.OrdinalIgnoreCase))
+            .Where(candidate => candidate.Connection.Profile is IDeckButtonImageProfile imageProfile
+                                && candidate.Connection.OutputReportLength >= imageProfile.PreferredOutputPacketLength)
+            .OrderByDescending(candidate => candidate.Connection.OutputReportLength)
+            .FirstOrDefault();
+
+        if (session?.Connection.Profile is not IDeckButtonImageProfile profile)
+        {
+            return false;
+        }
+
+        try
+        {
+            lock (session.OutputLock)
+            {
+                foreach (var (controlIndex, jpegData) in jpegImages.OrderBy(image => image.Key))
+                {
+                    foreach (var packet in profile.BuildButtonImageUpload(controlIndex, jpegData))
+                    {
+                        session.Connection.Stream.Write(packet);
+                    }
+                }
+
+                session.Connection.Stream.Write(profile.BuildBrightnessPacket(brightness));
+            }
+
+            AddLogLine(session, $"updated {jpegImages.Count} button icon(s)");
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException or ObjectDisposedException or ArgumentException or TimeoutException)
+        {
+            AddLogLine(session, $"button icon update failed: {exception.Message}");
+            return false;
         }
     }
 

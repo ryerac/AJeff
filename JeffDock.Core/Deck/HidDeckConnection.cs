@@ -16,6 +16,7 @@ internal sealed class HidDeckConnection : IDisposable
     public string DevicePath => Candidate.DevicePath;
     public string? SerialNumber => Candidate.SerialNumber;
     public int InputReportLength => Candidate.InputReportLength;
+    public int OutputReportLength => Candidate.OutputReportLength;
     public HidStream Stream { get; }
 
     public void Dispose()

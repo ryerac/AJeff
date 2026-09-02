@@ -2,13 +2,16 @@ using JeffDock.Core.Deck;
 
 namespace JeffDock.Core.Akp03e;
 
-public sealed class Akp03eProfile : IDeckProtocolProfile
+public sealed class Akp03eProfile : IDeckProtocolProfile, IDeckButtonImageProfile
 {
     // AJAZZ AKP03E appears as Mirabox v2.
     public string Name => "AJAZZ AKP03E";
     public int VendorId => 0x0300;
     public int ProductId => 0x3002;
     public int PreferredInputPacketLength => 512;
+    public int PreferredOutputPacketLength => Akp03eButtonImageProtocol.PacketLength;
+    public int ButtonImageWidth => Akp03eButtonImageProtocol.ImageWidth;
+    public int ButtonImageHeight => Akp03eButtonImageProtocol.ImageHeight;
     public DeckLayoutDefinition Layout { get; } = BuildLayout();
 
     public byte[] InitializePacket { get; } = BuildInitializePacket();
@@ -23,6 +26,16 @@ public sealed class Akp03eProfile : IDeckProtocolProfile
         }
 
         return ParseWithOffsets(packet, dataLengthOffset: 1, actionOffset: 10);
+    }
+
+    public IReadOnlyList<byte[]> BuildButtonImageUpload(int controlIndex, ReadOnlySpan<byte> jpegData)
+    {
+        return Akp03eButtonImageProtocol.BuildUpload(controlIndex, jpegData);
+    }
+
+    public byte[] BuildBrightnessPacket(int percentage)
+    {
+        return Akp03eButtonImageProtocol.BuildBrightnessPacket(percentage);
     }
 
     private static DeckInputEvent ParseWithOffsets(ReadOnlySpan<byte> packet, int dataLengthOffset, int actionOffset)
@@ -81,19 +94,22 @@ public sealed class Akp03eProfile : IDeckProtocolProfile
             Height: 220,
             Controls:
             [
-                new DeckControlLayout(DeckControlType.Button, 0, DeckControlVisualKind.SquareButton, 8, 8, 72, 72, "0"),
-                new DeckControlLayout(DeckControlType.Button, 1, DeckControlVisualKind.SquareButton, 88, 8, 72, 72, "1"),
-                new DeckControlLayout(DeckControlType.Button, 2, DeckControlVisualKind.SquareButton, 168, 8, 72, 72, "2"),
-                new DeckControlLayout(DeckControlType.Button, 3, DeckControlVisualKind.SquareButton, 8, 88, 72, 72, "3"),
-                new DeckControlLayout(DeckControlType.Button, 4, DeckControlVisualKind.SquareButton, 88, 88, 72, 72, "4"),
-                new DeckControlLayout(DeckControlType.Button, 5, DeckControlVisualKind.SquareButton, 168, 88, 72, 72, "5"),
+                new DeckControlLayout(DeckControlType.Button, 0, DeckControlVisualKind.SquareButton, 8, 8, 72, 72, "0", CanHaveIcon: true),
+                new DeckControlLayout(DeckControlType.Button, 1, DeckControlVisualKind.SquareButton, 88, 8, 72, 72, "1", CanHaveIcon: true),
+                new DeckControlLayout(DeckControlType.Button, 2, DeckControlVisualKind.SquareButton, 168, 8, 72, 72, "2", CanHaveIcon: true),
+                new DeckControlLayout(DeckControlType.Button, 3, DeckControlVisualKind.SquareButton, 8, 88, 72, 72, "3", CanHaveIcon: true),
+                new DeckControlLayout(DeckControlType.Button, 4, DeckControlVisualKind.SquareButton, 88, 88, 72, 72, "4", CanHaveIcon: true),
+                new DeckControlLayout(DeckControlType.Button, 5, DeckControlVisualKind.SquareButton, 168, 88, 72, 72, "5", CanHaveIcon: true),
                 new DeckControlLayout(DeckControlType.Button, 6, DeckControlVisualKind.RoundButton, 10, 176, 56, 32, "6"),
                 new DeckControlLayout(DeckControlType.Button, 7, DeckControlVisualKind.RoundButton, 92, 176, 56, 32, "7"),
                 new DeckControlLayout(DeckControlType.Button, 8, DeckControlVisualKind.RoundButton, 174, 176, 56, 32, "8"),
                 new DeckControlLayout(DeckControlType.Encoder, 1, DeckControlVisualKind.Knob, 310, 8, 110, 110, "1"),
                 new DeckControlLayout(DeckControlType.Encoder, 0, DeckControlVisualKind.Knob, 300, 136, 70, 70, "0"),
                 new DeckControlLayout(DeckControlType.Encoder, 2, DeckControlVisualKind.Knob, 380, 136, 70, 70, "2"),
-            ]
+            ],
+            ButtonImageRotationDegreesClockwise: 90,
+            ButtonImageOutputWidth: Akp03eButtonImageProtocol.ImageWidth,
+            ButtonImageOutputHeight: Akp03eButtonImageProtocol.ImageHeight
         );
     }
 }
