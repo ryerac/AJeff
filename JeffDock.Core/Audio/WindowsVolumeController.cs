@@ -32,6 +32,20 @@ public sealed class WindowsVolumeController : IDisposable
         volume.Mute = !volume.Mute;
     }
 
+    public bool GetOutputMute()
+    {
+        using var enumerator = new MMDeviceEnumerator();
+        using var defaultRenderDevice = enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+        return defaultRenderDevice.AudioEndpointVolume.Mute;
+    }
+
+    public bool GetMicrophoneMute()
+    {
+        using var enumerator = new MMDeviceEnumerator();
+        using var defaultCaptureDevice = enumerator.GetDefaultAudioEndpoint(DataFlow.Capture, Role.Communications);
+        return defaultCaptureDevice.AudioEndpointVolume.Mute;
+    }
+
     public void Dispose()
     {
     }

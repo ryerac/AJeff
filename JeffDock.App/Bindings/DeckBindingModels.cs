@@ -17,6 +17,18 @@ internal readonly record struct DeckBindingKey(
     DeckInputEventType TriggerEventType
 );
 
+internal enum DeckIconMode
+{
+    Static = 0,
+    Dynamic = 1,
+}
+
+internal readonly record struct DeckIconBindingKey(
+    string DeviceId,
+    string SceneId,
+    int ControlIndex
+);
+
 internal sealed record DeckScene(string Id, string Name)
 {
     public const string DefaultId = "default";
@@ -34,7 +46,13 @@ internal sealed record StoredDeckBinding(
 internal sealed record StoredDeckScene(
     string SceneId,
     string Name,
-    IReadOnlyList<StoredDeckBinding> Bindings
+    IReadOnlyList<StoredDeckBinding> Bindings,
+    IReadOnlyList<StoredDeckIconBinding>? Icons = null
+);
+
+internal sealed record StoredDeckIconBinding(
+    int ControlIndex,
+    DeckIconMode Mode
 );
 
 internal sealed record StoredDeckDevice(

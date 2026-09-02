@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.IO;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -37,6 +38,7 @@ public partial class MainWindow : Window
         _iconLibraryCatalog = new IconLibraryCatalog();
         _bindingStore.ActiveSceneChanged += OnActiveSceneChanged;
         _actionCatalog = new DeckActionCatalog(_bindingStore);
+        _actionCatalog.StateCatalog.StateChanged += OnDeckStateChanged;
         _actionExecutor = new DeckActionExecutor(_actionCatalog);
         _monitor = new DeckMonitorService(DeckProfileCatalog.SupportedProfiles, maxLinesPerDevice: 100);
         _monitor.DevicesChanged += OnDevicesChanged;
@@ -53,6 +55,7 @@ public partial class MainWindow : Window
         _monitor.DeviceLogChanged -= OnDeviceLogChanged;
         _monitor.InputEventReceived -= OnInputEventReceived;
         _bindingStore.ActiveSceneChanged -= OnActiveSceneChanged;
+        _actionCatalog.StateCatalog.StateChanged -= OnDeckStateChanged;
         _monitor.Dispose();
         _actionCatalog.Dispose();
         base.OnClosed(e);
@@ -282,6 +285,115 @@ public partial class MainWindow : Window
         }
     }
 
+    private void IconModeComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isUpdatingBindingEditor
+            || IconModeComboBox.SelectedItem is not DeckIconMode mode
+            || GetSelectedDevice() is not { } device
+            || _selectedControl is not { ControlType: DeckControlType.Button } selectedControl)
+        {
+            return;
+        }
+
+        _bindingStore.SetIconMode(device, selectedControl.ControlIndex, mode);
+        RefreshButtonIcons();
+        RefreshBindingEditor();
+        QueueIconSync(device);
+    }
+
+    private void DynamicStateLibraryButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: DeckActionVisualState state })
+        {
+            ChooseDynamicStateIcon(state, useLibrary: true);
+        }
+    }
+
+    private void DynamicStateUploadButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: DeckActionVisualState state })
+        {
+            ChooseDynamicStateIcon(state, useLibrary: false);
+        }
+    }
+
+    private void DynamicStateRemoveButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: DeckActionVisualState state }
+            || GetSelectedDevice() is not { } device
+            || _selectedControl is not { ControlType: DeckControlType.Button } selectedControl)
+        {
+            return;
+        }
+
+        var scene = _bindingStore.GetActiveScene(device);
+        if (_iconStore.DeleteStateIcon(device.DeviceId, scene.Id, selectedControl.ControlIndex, state.Id))
+        {
+            RefreshButtonIcons();
+            RefreshBindingEditor();
+            QueueIconSync(device);
+        }
+    }
+
+    private void ChooseDynamicStateIcon(DeckActionVisualState state, bool useLibrary)
+    {
+        var device = GetSelectedDevice();
+        if (device is null || _selectedControl is not { ControlType: DeckControlType.Button } selectedControl)
+        {
+            return;
+        }
+
+        byte[]? imageBytes = null;
+        string? imagePath = null;
+        if (useLibrary)
+        {
+            var picker = new IconLibraryDialog(_iconLibraryCatalog.Icons) { Owner = this };
+            if (picker.ShowDialog() != true || picker.SelectedIcon is not { } icon)
+            {
+                return;
+            }
+
+            imageBytes = icon.ImageBytes;
+        }
+        else
+        {
+            var picker = new OpenFileDialog
+            {
+                Title = $"Choose the {state.DisplayName} icon",
+                Filter = "Image files|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff|All files|*.*",
+                CheckFileExists = true,
+                Multiselect = false,
+            };
+            if (picker.ShowDialog(this) != true)
+            {
+                return;
+            }
+
+            imagePath = picker.FileName;
+        }
+
+        try
+        {
+            var scene = _bindingStore.GetActiveScene(device);
+            if (imageBytes is not null)
+            {
+                _iconStore.SaveStateIcon(device.DeviceId, scene.Id, selectedControl.ControlIndex, state.Id, imageBytes);
+            }
+            else
+            {
+                _iconStore.SaveStateIcon(device.DeviceId, scene.Id, selectedControl.ControlIndex, state.Id, imagePath!);
+            }
+
+            RefreshButtonIcons();
+            RefreshBindingEditor();
+            QueueIconSync(device);
+        }
+        catch (Exception exception)
+        {
+            MessageBox.Show(this, $"The icon could not be saved.\n\n{exception.Message}", "Dynamic Icon", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     private void RenameSceneButton_OnClick(object sender, RoutedEventArgs e)
     {
         var device = GetSelectedDevice();
@@ -345,6 +457,22 @@ public partial class MainWindow : Window
         }
 
         _ = Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(RefreshLogs));
+    }
+
+    private void OnDeckStateChanged(string sourceId, string state)
+    {
+        _ = Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+        {
+            var device = GetSelectedDevice();
+            if (device is null || !DeviceUsesStateSource(device, sourceId))
+            {
+                return;
+            }
+
+            RefreshButtonIcons();
+            RefreshBindingEditor();
+            QueueIconSync(device);
+        }));
     }
 
     private void RefreshUi()
@@ -530,6 +658,8 @@ public partial class MainWindow : Window
                 SelectedControlText.Text = "Selected Control: none";
                 IconBindingRow.Visibility = Visibility.Collapsed;
                 RemoveIconButton.IsEnabled = false;
+                IconModeComboBox.ItemsSource = null;
+                DynamicIconStatesPanel.Children.Clear();
                 TurnBindingRow.Visibility = Visibility.Collapsed;
                 PressBindingRow.Visibility = Visibility.Collapsed;
                 TurnActionComboBox.ItemsSource = null;
@@ -541,11 +671,10 @@ public partial class MainWindow : Window
 
             SelectedControlText.Text = $"Selected Control: {DescribeControl(layout)}";
             IconBindingRow.Visibility = layout.CanHaveIcon ? Visibility.Visible : Visibility.Collapsed;
-            RemoveIconButton.IsEnabled = layout.CanHaveIcon
-                                         && _iconStore.FindIconPath(
-                                             device.DeviceId,
-                                             _bindingStore.GetActiveScene(device).Id,
-                                             selectedControl.ControlIndex) is not null;
+            if (layout.CanHaveIcon)
+            {
+                ConfigureIconEditor(device, selectedControl.ControlIndex);
+            }
 
             if (selectedControl.ControlType == DeckControlType.Encoder)
             {
@@ -579,6 +708,86 @@ public partial class MainWindow : Window
         finally
         {
             _isUpdatingBindingEditor = false;
+        }
+    }
+
+    private void ConfigureIconEditor(MonitoredDeckDevice device, int controlIndex)
+    {
+        var scene = _bindingStore.GetActiveScene(device);
+        var action = _actionCatalog.GetAction(_bindingStore.GetActionId(
+            device,
+            DeckControlType.Button,
+            controlIndex,
+            DeckInputEventType.ButtonPress));
+        var visual = action.Visual;
+        var mode = _bindingStore.GetIconMode(device, controlIndex);
+        if (visual is null)
+        {
+            mode = DeckIconMode.Static;
+        }
+
+        IconModeComboBox.ItemsSource = visual is null
+            ? new[] { DeckIconMode.Static }
+            : Enum.GetValues<DeckIconMode>();
+        IconModeComboBox.SelectedItem = mode;
+        StaticIconRow.Visibility = mode == DeckIconMode.Static ? Visibility.Visible : Visibility.Collapsed;
+        DynamicIconPanel.Visibility = mode == DeckIconMode.Dynamic ? Visibility.Visible : Visibility.Collapsed;
+        RemoveIconButton.IsEnabled = mode == DeckIconMode.Static
+                                     && _iconStore.FindIconPath(device.DeviceId, scene.Id, controlIndex) is not null;
+
+        DynamicIconStatesPanel.Children.Clear();
+        if (mode != DeckIconMode.Dynamic || visual is null)
+        {
+            DynamicIconStateText.Text = string.Empty;
+            return;
+        }
+
+        var currentState = _actionCatalog.StateCatalog.GetCurrentState(visual.StateSourceId);
+        DynamicIconStateText.Text = $"Current state: {currentState}";
+        foreach (var state in visual.States)
+        {
+            var customPath = _iconStore.FindStateIconPath(device.DeviceId, scene.Id, controlIndex, state.Id);
+            var sourceDescription = customPath is not null
+                ? "Custom"
+                : state.DefaultIconId is not null ? "Action default" : "Blank";
+
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
+            row.Children.Add(new TextBlock
+            {
+                Text = state.DisplayName,
+                Width = 90,
+                VerticalAlignment = VerticalAlignment.Center,
+                FontWeight = string.Equals(state.Id, currentState, StringComparison.OrdinalIgnoreCase)
+                    ? FontWeights.Bold
+                    : FontWeights.Normal,
+            });
+            row.Children.Add(new TextBlock
+            {
+                Text = sourceDescription,
+                Width = 95,
+                Foreground = CreateBrush("#666666"),
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+
+            var libraryButton = new Button { Content = "Library...", Tag = state, Padding = new Thickness(8, 3, 8, 3) };
+            libraryButton.Click += DynamicStateLibraryButton_OnClick;
+            row.Children.Add(libraryButton);
+
+            var uploadButton = new Button { Content = "Upload...", Tag = state, Margin = new Thickness(6, 0, 0, 0), Padding = new Thickness(8, 3, 8, 3) };
+            uploadButton.Click += DynamicStateUploadButton_OnClick;
+            row.Children.Add(uploadButton);
+
+            var removeButton = new Button
+            {
+                Content = "Reset",
+                Tag = state,
+                Margin = new Thickness(6, 0, 0, 0),
+                Padding = new Thickness(8, 3, 8, 3),
+                IsEnabled = customPath is not null,
+            };
+            removeButton.Click += DynamicStateRemoveButton_OnClick;
+            row.Children.Add(removeButton);
+            DynamicIconStatesPanel.Children.Add(row);
         }
     }
 
@@ -619,6 +828,19 @@ public partial class MainWindow : Window
         }
 
         _bindingStore.SetAction(device, selectedControl.ControlType, selectedControl.ControlIndex, triggerEventType, actionId);
+
+        if (selectedControl.ControlType == DeckControlType.Button)
+        {
+            if (_bindingStore.GetIconMode(device, selectedControl.ControlIndex) == DeckIconMode.Dynamic
+                && _actionCatalog.GetAction(actionId).Visual is null)
+            {
+                _bindingStore.SetIconMode(device, selectedControl.ControlIndex, DeckIconMode.Static);
+            }
+
+            RefreshButtonIcons();
+            RefreshBindingEditor();
+            QueueIconSync(device);
+        }
     }
 
     private MonitoredDeckDevice? GetSelectedDevice()
@@ -718,7 +940,6 @@ public partial class MainWindow : Window
             return;
         }
 
-        var scene = _bindingStore.GetActiveScene(device);
         foreach (var (key, layout) in _controlLayouts.Where(entry => entry.Value.CanHaveIcon))
         {
             if (!_controlVisuals.TryGetValue(key, out var border))
@@ -726,10 +947,10 @@ public partial class MainWindow : Window
                 continue;
             }
 
-            var iconPath = _iconStore.FindIconPath(device.DeviceId, scene.Id, layout.ControlIndex);
-            border.Child = iconPath is null
+            var iconBytes = ResolveButtonIconBytes(device, layout.ControlIndex);
+            border.Child = iconBytes is null
                 ? BuildControlLabel(layout, Brushes.Gainsboro)
-                : BuildIconImage(iconPath, layout);
+                : BuildIconImage(iconBytes, layout);
         }
     }
 
@@ -745,25 +966,101 @@ public partial class MainWindow : Window
             return;
         }
 
-        var scene = _bindingStore.GetActiveScene(device);
+        var sourceImages = buttonIndexes.ToDictionary(
+            buttonIndex => buttonIndex,
+            buttonIndex => ResolveButtonIconBytes(device, buttonIndex));
         var images = _iconStore.LoadButtonImages(
-            device.DeviceId,
-            scene.Id,
-            buttonIndexes,
+            sourceImages,
             device.Layout.ButtonImageOutputWidth,
             device.Layout.ButtonImageOutputHeight,
             device.Layout.ButtonImageRotationDegreesClockwise);
         _ = Task.Run(() => _monitor.TrySetButtonImages(device.DeviceId, images));
     }
 
-    private static FrameworkElement BuildIconImage(string iconPath, DeckControlLayout control)
+    private bool DeviceUsesStateSource(MonitoredDeckDevice device, string sourceId)
+    {
+        return device.Layout.Controls
+            .Where(control => control.ControlType == DeckControlType.Button && control.CanHaveIcon)
+            .Any(control =>
+            {
+                if (_bindingStore.GetIconMode(device, control.ControlIndex) != DeckIconMode.Dynamic)
+                {
+                    return false;
+                }
+
+                var actionId = _bindingStore.GetActionId(
+                    device,
+                    DeckControlType.Button,
+                    control.ControlIndex,
+                    DeckInputEventType.ButtonPress);
+                return string.Equals(
+                    _actionCatalog.GetAction(actionId).Visual?.StateSourceId,
+                    sourceId,
+                    StringComparison.OrdinalIgnoreCase);
+            });
+    }
+
+    private byte[]? ResolveButtonIconBytes(MonitoredDeckDevice device, int buttonIndex)
+    {
+        var scene = _bindingStore.GetActiveScene(device);
+        if (_bindingStore.GetIconMode(device, buttonIndex) == DeckIconMode.Static)
+        {
+            var staticPath = _iconStore.FindIconPath(device.DeviceId, scene.Id, buttonIndex);
+            return ReadIconBytes(staticPath);
+        }
+
+        var actionId = _bindingStore.GetActionId(
+            device,
+            DeckControlType.Button,
+            buttonIndex,
+            DeckInputEventType.ButtonPress);
+        var visual = _actionCatalog.GetAction(actionId).Visual;
+        if (visual is null)
+        {
+            return null;
+        }
+
+        var currentState = _actionCatalog.StateCatalog.GetCurrentState(visual.StateSourceId);
+        var state = visual.States.FirstOrDefault(candidate =>
+            string.Equals(candidate.Id, currentState, StringComparison.OrdinalIgnoreCase));
+        if (state is null)
+        {
+            return null;
+        }
+
+        var customPath = _iconStore.FindStateIconPath(device.DeviceId, scene.Id, buttonIndex, state.Id);
+        var customBytes = ReadIconBytes(customPath);
+        if (customBytes is not null)
+        {
+            return customBytes;
+        }
+
+        return state.DefaultIconId is null
+            ? null
+            : _iconLibraryCatalog.FindIcon(state.DefaultIconId)?.ImageBytes;
+    }
+
+    private static byte[]? ReadIconBytes(string? path)
+    {
+        try
+        {
+            return path is null ? null : File.ReadAllBytes(path);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static FrameworkElement BuildIconImage(byte[] iconBytes, DeckControlLayout control)
     {
         try
         {
             var bitmap = new System.Windows.Media.Imaging.BitmapImage();
             bitmap.BeginInit();
             bitmap.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
-            bitmap.UriSource = new Uri(iconPath, UriKind.Absolute);
+            using var stream = new MemoryStream(iconBytes, writable: false);
+            bitmap.StreamSource = stream;
             bitmap.EndInit();
             bitmap.Freeze();
 

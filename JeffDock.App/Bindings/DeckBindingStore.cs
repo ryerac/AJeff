@@ -13,6 +13,7 @@ internal sealed class DeckBindingStore
     private readonly object _sync = new();
     private readonly string _filePath;
     private readonly Dictionary<DeckBindingKey, string> _bindings = new();
+    private readonly Dictionary<DeckIconBindingKey, DeckIconMode> _iconBindings = new();
     private readonly Dictionary<string, List<DeckScene>> _scenesByDevice = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _activeSceneByDevice = new(StringComparer.OrdinalIgnoreCase);
     private readonly JsonSerializerOptions _jsonOptions = new()
@@ -175,6 +176,14 @@ internal sealed class DeckBindingStore
                 _bindings.Remove(key);
             }
 
+            foreach (var key in _iconBindings.Keys
+                         .Where(key => string.Equals(key.DeviceId, device.DeviceId, StringComparison.OrdinalIgnoreCase)
+                                       && string.Equals(key.SceneId, sceneId, StringComparison.OrdinalIgnoreCase))
+                         .ToList())
+            {
+                _iconBindings.Remove(key);
+            }
+
             if (activeSceneDeleted)
             {
                 _activeSceneByDevice[device.DeviceId] = DeckScene.DefaultId;
@@ -211,6 +220,33 @@ internal sealed class DeckBindingStore
         {
             var key = new DeckBindingKey(device.DeviceId, GetActiveSceneId(device.DeviceId), controlType, controlIndex, triggerEventType);
             _bindings[key] = actionId;
+            Save();
+        }
+    }
+
+    public DeckIconMode GetIconMode(MonitoredDeckDevice device, int controlIndex)
+    {
+        lock (_sync)
+        {
+            var key = new DeckIconBindingKey(device.DeviceId, GetActiveSceneId(device.DeviceId), controlIndex);
+            return _iconBindings.GetValueOrDefault(key, DeckIconMode.Static);
+        }
+    }
+
+    public void SetIconMode(MonitoredDeckDevice device, int controlIndex, DeckIconMode mode)
+    {
+        lock (_sync)
+        {
+            var key = new DeckIconBindingKey(device.DeviceId, GetActiveSceneId(device.DeviceId), controlIndex);
+            if (mode == DeckIconMode.Static)
+            {
+                _iconBindings.Remove(key);
+            }
+            else
+            {
+                _iconBindings[key] = mode;
+            }
+
             Save();
         }
     }
@@ -252,6 +288,7 @@ internal sealed class DeckBindingStore
         catch
         {
             _bindings.Clear();
+            _iconBindings.Clear();
             _scenesByDevice.Clear();
             _activeSceneByDevice.Clear();
         }
@@ -346,6 +383,14 @@ internal sealed class DeckBindingStore
                 {
                     AddBinding(storedDevice.DeviceId, storedScene.SceneId, binding);
                 }
+
+                foreach (var icon in storedScene.Icons ?? [])
+                {
+                    if (icon.ControlIndex >= 0 && Enum.IsDefined(icon.Mode) && icon.Mode != DeckIconMode.Static)
+                    {
+                        _iconBindings[new DeckIconBindingKey(storedDevice.DeviceId, storedScene.SceneId, icon.ControlIndex)] = icon.Mode;
+                    }
+                }
             }
 
             if (scenes.Any(scene => string.Equals(scene.Id, storedDevice.ActiveSceneId, StringComparison.OrdinalIgnoreCase)))
@@ -414,6 +459,12 @@ internal sealed class DeckBindingStore
                             .OrderBy(binding => binding.ControlType)
                             .ThenBy(binding => binding.ControlIndex)
                             .ThenBy(binding => binding.TriggerEventType)
+                            .ToList(),
+                        _iconBindings
+                            .Where(entry => string.Equals(entry.Key.DeviceId, device.Key, StringComparison.OrdinalIgnoreCase)
+                                            && string.Equals(entry.Key.SceneId, scene.Id, StringComparison.OrdinalIgnoreCase))
+                            .Select(entry => new StoredDeckIconBinding(entry.Key.ControlIndex, entry.Value))
+                            .OrderBy(icon => icon.ControlIndex)
                             .ToList()))
                     .ToList()))
             .ToList();

@@ -70,16 +70,27 @@
                                    FontWeight="SemiBold"
                                    Margin="0,0,0,8" />
 
-                        <StackPanel x:Name="IconBindingRow" Orientation="Horizontal" Margin="0,0,0,8" Visibility="Collapsed">
-                            <TextBlock Text="Icon" Width="100" VerticalAlignment="Center" />
-                            <Button Content="Library..." Padding="12,4" Click="IconLibraryButton_OnClick" />
-                            <Button Content="Upload Icon..." Margin="8,0,0,0" Padding="12,4" Click="UploadIconButton_OnClick" />
-                            <Button x:Name="RemoveIconButton"
-                                    Content="Remove"
-                                    Margin="8,0,0,0"
-                                    Padding="12,4"
-                                    IsEnabled="False"
-                                    Click="RemoveIconButton_OnClick" />
+                        <StackPanel x:Name="IconBindingRow" Margin="0,0,0,8" Visibility="Collapsed">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Icon" Width="100" VerticalAlignment="Center" />
+                                <ComboBox x:Name="IconModeComboBox"
+                                          Width="110"
+                                          SelectionChanged="IconModeComboBox_OnSelectionChanged" />
+                            </StackPanel>
+                            <StackPanel x:Name="StaticIconRow" Orientation="Horizontal" Margin="100,6,0,0">
+                                <Button Content="Library..." Padding="12,4" Click="IconLibraryButton_OnClick" />
+                                <Button Content="Upload Icon..." Margin="8,0,0,0" Padding="12,4" Click="UploadIconButton_OnClick" />
+                                <Button x:Name="RemoveIconButton"
+                                        Content="Remove"
+                                        Margin="8,0,0,0"
+                                        Padding="12,4"
+                                        IsEnabled="False"
+                                        Click="RemoveIconButton_OnClick" />
+                            </StackPanel>
+                            <StackPanel x:Name="DynamicIconPanel" Margin="100,6,0,0" Visibility="Collapsed">
+                                <TextBlock x:Name="DynamicIconStateText" Foreground="#666" Margin="0,0,0,4" />
+                                <StackPanel x:Name="DynamicIconStatesPanel" />
+                            </StackPanel>
                         </StackPanel>
 
                         <StackPanel x:Name="TurnBindingRow" Orientation="Horizontal" Margin="0,0,0,8" Visibility="Collapsed">

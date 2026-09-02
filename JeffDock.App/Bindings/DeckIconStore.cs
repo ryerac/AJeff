@@ -22,22 +22,32 @@ internal sealed class DeckIconStore
 
     public string SaveIcon(string deviceId, string sceneId, int buttonIndex, string sourcePath)
     {
-        return SaveIcon(deviceId, sceneId, buttonIndex, LoadBitmap(sourcePath));
+        return SaveIcon(GetIconPath(deviceId, sceneId, buttonIndex), LoadBitmap(sourcePath));
     }
 
     public string SaveIcon(string deviceId, string sceneId, int buttonIndex, byte[] imageBytes)
     {
         using var stream = new MemoryStream(imageBytes, writable: false);
-        return SaveIcon(deviceId, sceneId, buttonIndex, LoadBitmap(stream));
+        return SaveIcon(GetIconPath(deviceId, sceneId, buttonIndex), LoadBitmap(stream));
     }
 
-    private string SaveIcon(string deviceId, string sceneId, int buttonIndex, BitmapSource source)
+    public string SaveStateIcon(string deviceId, string sceneId, int buttonIndex, string stateId, string sourcePath)
     {
-        var iconDirectory = GetIconDirectory(deviceId, sceneId);
+        return SaveIcon(GetStateIconPath(deviceId, sceneId, buttonIndex, stateId), LoadBitmap(sourcePath));
+    }
+
+    public string SaveStateIcon(string deviceId, string sceneId, int buttonIndex, string stateId, byte[] imageBytes)
+    {
+        using var stream = new MemoryStream(imageBytes, writable: false);
+        return SaveIcon(GetStateIconPath(deviceId, sceneId, buttonIndex, stateId), LoadBitmap(stream));
+    }
+
+    private static string SaveIcon(string destinationPath, BitmapSource source)
+    {
+        var iconDirectory = Path.GetDirectoryName(destinationPath)!;
         Directory.CreateDirectory(iconDirectory);
 
-        var destinationPath = Path.Combine(iconDirectory, $"{buttonIndex}.jpg");
-        var temporaryPath = Path.Combine(iconDirectory, $".{buttonIndex}.{Guid.NewGuid():N}.tmp");
+        var temporaryPath = Path.Combine(iconDirectory, $".{Path.GetFileName(destinationPath)}.{Guid.NewGuid():N}.tmp");
 
         try
         {
@@ -89,24 +99,36 @@ internal sealed class DeckIconStore
         return File.Exists(path) ? path : null;
     }
 
+    public string? FindStateIconPath(string deviceId, string sceneId, int buttonIndex, string stateId)
+    {
+        var path = GetStateIconPath(deviceId, sceneId, buttonIndex, stateId);
+        return File.Exists(path) ? path : null;
+    }
+
+    public bool DeleteStateIcon(string deviceId, string sceneId, int buttonIndex, string stateId)
+    {
+        var path = GetStateIconPath(deviceId, sceneId, buttonIndex, stateId);
+        if (!File.Exists(path))
+        {
+            return false;
+        }
+
+        File.Delete(path);
+        return true;
+    }
+
     public IReadOnlyDictionary<int, byte[]> LoadButtonImages(
-        string deviceId,
-        string sceneId,
-        IEnumerable<int> buttonIndexes,
+        IReadOnlyDictionary<int, byte[]?> sourceImages,
         int outputWidth,
         int outputHeight,
         int rotationDegreesClockwise)
     {
         var blankIcon = CreateBlankIcon(outputWidth, outputHeight);
-        return buttonIndexes.ToDictionary(
-            buttonIndex => buttonIndex,
-            buttonIndex =>
-            {
-                var path = GetIconPath(deviceId, sceneId, buttonIndex);
-                return File.Exists(path)
-                    ? LoadDeviceJpeg(path, outputWidth, outputHeight, rotationDegreesClockwise)
-                    : blankIcon.ToArray();
-            });
+        return sourceImages.ToDictionary(
+            entry => entry.Key,
+            entry => entry.Value is { } bytes
+                ? LoadDeviceJpeg(bytes, outputWidth, outputHeight, rotationDegreesClockwise)
+                : blankIcon.ToArray());
     }
 
     private string GetIconDirectory(string deviceId, string sceneId)
@@ -121,6 +143,14 @@ internal sealed class DeckIconStore
     private string GetIconPath(string deviceId, string sceneId, int buttonIndex)
     {
         return Path.Combine(GetIconDirectory(deviceId, sceneId), $"{buttonIndex}.jpg");
+    }
+
+    private string GetStateIconPath(string deviceId, string sceneId, int buttonIndex, string stateId)
+    {
+        return Path.Combine(
+            GetIconDirectory(deviceId, sceneId),
+            buttonIndex.ToString(),
+            $"{BuildSafeStateFileName(stateId)}.jpg");
     }
 
     private static BitmapSource LoadBitmap(string sourcePath)
@@ -146,12 +176,13 @@ internal sealed class DeckIconStore
     }
 
     private static byte[] LoadDeviceJpeg(
-        string sourcePath,
+        byte[] imageBytes,
         int outputWidth,
         int outputHeight,
         int rotationDegreesClockwise)
     {
-        BitmapSource source = RenderDeviceImage(LoadBitmap(sourcePath), outputWidth, outputHeight);
+        using var sourceStream = new MemoryStream(imageBytes, writable: false);
+        BitmapSource source = RenderDeviceImage(LoadBitmap(sourceStream), outputWidth, outputHeight);
         if (rotationDegreesClockwise % 360 != 0)
         {
             source = new TransformedBitmap(source, new RotateTransform(rotationDegreesClockwise));
@@ -250,5 +281,17 @@ internal sealed class DeckIconStore
 
         var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(sceneId)))[..16].ToLowerInvariant();
         return $"scene-{hash}";
+    }
+
+    private static string BuildSafeStateFileName(string stateId)
+    {
+        if (stateId.Length is > 0 and <= 64
+            && stateId.All(character => char.IsLetterOrDigit(character) || character is '-' or '_'))
+        {
+            return stateId;
+        }
+
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(stateId)))[..16].ToLowerInvariant();
+        return $"state-{hash}";
     }
 }

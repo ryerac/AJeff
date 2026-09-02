@@ -23,6 +23,11 @@ internal sealed class IconLibraryCatalog
         Icons = LoadIcons(typeof(IconLibraryCatalog).Assembly);
     }
 
+    public IconLibraryItem? FindIcon(string iconId)
+    {
+        return Icons.FirstOrDefault(icon => string.Equals(icon.Id, iconId, StringComparison.OrdinalIgnoreCase));
+    }
+
     private static IReadOnlyList<IconLibraryItem> LoadIcons(Assembly assembly)
     {
         var resources = ReadPackResources(assembly);

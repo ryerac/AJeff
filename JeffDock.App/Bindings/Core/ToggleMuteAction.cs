@@ -1,5 +1,6 @@
 using JeffDock.Core.Audio;
 using JeffDock.Core.Deck;
+using JeffDock.App.Bindings.State;
 
 namespace JeffDock.App.Bindings.Core;
 
@@ -14,6 +15,13 @@ internal sealed class ToggleMuteAction(WindowsVolumeController volumeController)
     public string DisplayName => "Toggle Mute";
 
     public DeckActionGroup Group => DeckActionGroups.Audio;
+
+    public DeckActionVisualDefinition Visual { get; } = new(
+        OutputMuteStateSource.SourceId,
+        [
+            new("muted", "Muted", "core/audio/toggle-mute"),
+            new("unmuted", "Not Muted"),
+        ]);
 
     public bool Supports(DeckInputEventType triggerEventType)
     {

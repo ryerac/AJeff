@@ -1,5 +1,6 @@
 using JeffDock.App.Bindings.Core;
 using JeffDock.App.Bindings.Scenes;
+using JeffDock.App.Bindings.State;
 using JeffDock.Core.Audio;
 using JeffDock.Core.Deck;
 
@@ -11,8 +12,11 @@ internal sealed class DeckActionCatalog : IDisposable
     private readonly IReadOnlyList<IDeckAction> _actions;
     private readonly IReadOnlyDictionary<string, IDeckAction> _actionsById;
 
+    public DeckStateCatalog StateCatalog { get; }
+
     public DeckActionCatalog(DeckBindingStore bindingStore)
     {
+        StateCatalog = new DeckStateCatalog(_volumeController);
         _actions =
         [
             new NoAction(),
@@ -57,6 +61,7 @@ internal sealed class DeckActionCatalog : IDisposable
 
     public void Dispose()
     {
+        StateCatalog.Dispose();
         _volumeController.Dispose();
     }
 }
