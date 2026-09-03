@@ -585,7 +585,7 @@ public partial class MainWindow : Window
         {
             _selectedDeviceId = null;
             _selectedControl = null;
-            SelectedDeviceTitle.Text = "Raw Input Log";
+            SelectedDeviceTitle.Text = "No device connected";
             LogListBox.ItemsSource = new[] { "No supported device connected." };
             RenderFaceplate(null);
             RefreshSceneEditor();
@@ -618,12 +618,12 @@ public partial class MainWindow : Window
         var selected = DevicesListBox.SelectedItem as MonitoredDeckDevice;
         if (selected is null)
         {
-            SelectedDeviceTitle.Text = "Raw Input Log";
+            SelectedDeviceTitle.Text = "Select a device";
             LogListBox.ItemsSource = new[] { "Select a device." };
             return;
         }
 
-        SelectedDeviceTitle.Text = $"Raw Input Log - {selected.ProfileName}";
+        SelectedDeviceTitle.Text = selected.DisplayName;
 
         var lines = _monitor.GetLogLines(selected.DeviceId);
         if (lines.Count == 0)
@@ -701,12 +701,12 @@ public partial class MainWindow : Window
                 var item = new Border
                 {
                     Tag = preset,
-                    Margin = new Thickness(0, 0, 0, 6),
-                    Padding = new Thickness(9, 7, 9, 7),
-                    CornerRadius = new CornerRadius(5),
+                    Margin = new Thickness(0, 0, 0, 8),
+                    Padding = new Thickness(10, 8, 10, 8),
+                    CornerRadius = new CornerRadius(7),
                     BorderThickness = new Thickness(1),
-                    BorderBrush = CreateBrush("#D0D0D0"),
-                    Background = CreateBrush("#FAFAFA"),
+                    BorderBrush = CreateBrush("#E1E5EC"),
+                    Background = Brushes.White,
                     Cursor = Cursors.Hand,
                     ToolTip = preset.Description,
                     Child = BuildPresetPaletteItem(preset),
@@ -719,7 +719,7 @@ public partial class MainWindow : Window
             {
                 Header = section.Name,
                 IsExpanded = true,
-                Margin = new Thickness(0, 0, 0, 8),
+                Margin = new Thickness(0, 0, 0, 12),
                 Content = contents,
             });
         }
