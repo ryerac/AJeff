@@ -14,9 +14,10 @@ internal sealed class PluginActionAdapter(IPluginDeckAction action) : IDeckActio
         action.Visual.StateSourceId,
         action.Visual.States.Select(state => new DeckActionVisualState(state.Id, state.DisplayName, state.DefaultIconId)).ToList(),
         action.Visual.IsImageManaged);
+    public IReadOnlyList<PluginSettingDefinition> Parameters => action.Parameters;
     public bool Supports(DeckInputEventType triggerEventType) => action.Supports(triggerEventType);
     public void Execute(DeckActionContext context) => action.Execute(new(
-        context.Device, context.InputEvent, context.Parameters));
+        context.Device, context.SceneId, context.InputEvent, context.Parameters));
 }
 
 internal sealed class PluginStateSourceAdapter : IDeckStateSource
@@ -32,6 +33,10 @@ internal sealed class PluginStateSourceAdapter : IDeckStateSource
     public string Id => _source.Id;
     public string CurrentState => _source.CurrentState;
     public byte[]? CurrentImageBytes => _source.CurrentImageBytes;
+    public string GetCurrentState(string deviceId, string sceneId, int controlIndex, IReadOnlyDictionary<string, string> parameters) =>
+        _source.GetCurrentState(new PluginVisualContext(deviceId, sceneId, controlIndex, parameters));
+    public byte[]? GetCurrentImageBytes(string deviceId, string sceneId, int controlIndex, IReadOnlyDictionary<string, string> parameters) =>
+        _source.GetCurrentImageBytes(new PluginVisualContext(deviceId, sceneId, controlIndex, parameters));
     public event EventHandler<string>? StateChanged;
     public void Start() => _source.Start();
 

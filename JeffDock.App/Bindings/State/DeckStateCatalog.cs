@@ -38,6 +38,16 @@ internal sealed class DeckStateCatalog : IDisposable
         return _sources.GetValueOrDefault(sourceId)?.CurrentImageBytes;
     }
 
+    public string GetCurrentState(string sourceId, string deviceId, string sceneId, int controlIndex, IReadOnlyDictionary<string, string> parameters)
+    {
+        return _sources.GetValueOrDefault(sourceId)?.GetCurrentState(deviceId, sceneId, controlIndex, parameters) ?? "unknown";
+    }
+
+    public byte[]? GetCurrentImageBytes(string sourceId, string deviceId, string sceneId, int controlIndex, IReadOnlyDictionary<string, string> parameters)
+    {
+        return _sources.GetValueOrDefault(sourceId)?.GetCurrentImageBytes(deviceId, sceneId, controlIndex, parameters);
+    }
+
     private void OnStateChanged(object? sender, string state)
     {
         if (sender is IDeckStateSource source)

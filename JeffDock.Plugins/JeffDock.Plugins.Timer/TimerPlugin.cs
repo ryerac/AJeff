@@ -69,19 +69,26 @@ internal sealed class StartTimerAction(TimerController controller) : IPluginDeck
         TimerController.StateSourceId,
         [new("ready", "Ready", "elgato/general/timer"), new("running", "Running"), new("finished", "Finished")],
         IsImageManaged: true);
+    public IReadOnlyList<PluginSettingDefinition> Parameters { get; } =
+    [
+        new PluginSettingDefinition(
+            "durationSeconds", "Duration override",
+            "Optional duration for this button. Disable the override to use the plugin default.",
+            PluginSettingType.Integer, "60", Minimum: 5, Maximum: 86400, Suffix: "seconds"),
+    ];
     public bool Supports(DeckInputEventType triggerEventType) => triggerEventType == DeckInputEventType.ButtonPress;
 
     public void Execute(PluginActionContext context)
     {
         var input = context.InputEvent;
-        var key = $"{context.Device.DeviceId}|{input.ControlIndex}";
+        var key = $"{context.Device.DeviceId}|{context.SceneId}|{input.ControlIndex}";
         lock (_sync)
         {
             var now = DateTime.UtcNow;
             if (_lastPressByControl.TryGetValue(key, out var last) && now - last < TimeSpan.FromSeconds(1)) return;
             _lastPressByControl[key] = now;
         }
-        controller.ToggleCountdown();
+        controller.ToggleCountdown(new TimerInstanceKey(context.Device.DeviceId, context.SceneId, input.ControlIndex), context.Parameters);
     }
 }
 
@@ -91,67 +98,83 @@ internal sealed class TimerController : IPluginDeckStateSource
     private readonly object _sync = new();
     private readonly IPluginSettings _settings;
     private readonly IPluginNotifications _notifications;
-    private System.Threading.Timer? _timer;
-    private int _remainingSeconds;
-    private byte[] _imageBytes;
+    private readonly Dictionary<TimerInstanceKey, TimerInstance> _instances = [];
 
     public TimerController(IPluginSettings settings, IPluginNotifications notifications)
     {
         _settings = settings;
         _notifications = notifications;
-        _remainingSeconds = ReadDuration();
-        _imageBytes = RenderTime(_remainingSeconds, finished: false);
         _settings.Changed += OnSettingChanged;
     }
 
     public string Id => StateSourceId;
-    public string CurrentState { get; private set; } = "ready";
-    public byte[]? CurrentImageBytes { get { lock (_sync) return _imageBytes.ToArray(); } }
+    public string CurrentState => "ready";
+    public string GetCurrentState(PluginVisualContext context)
+    {
+        lock (_sync) return _instances.GetValueOrDefault(ToKey(context))?.State ?? "ready";
+    }
+    public byte[]? GetCurrentImageBytes(PluginVisualContext context)
+    {
+        lock (_sync)
+        {
+            var key = ToKey(context);
+            var duration = ReadDuration(context.Parameters);
+            if (_instances.TryGetValue(key, out var instance))
+            {
+                if (instance.Timer is null && instance.State == "ready" && instance.RemainingSeconds != duration)
+                {
+                    instance = new TimerInstance(duration, "ready", RenderTime(duration, false), null, context.Parameters.ContainsKey("durationSeconds"));
+                    _instances[key] = instance;
+                }
+                return instance.ImageBytes.ToArray();
+            }
+            return RenderTime(duration, finished: false);
+        }
+    }
     public event EventHandler<string>? StateChanged;
     public void Start() { }
 
-    public void ToggleCountdown()
+    public void ToggleCountdown(TimerInstanceKey key, IReadOnlyDictionary<string, string> parameters)
     {
         string state;
         lock (_sync)
         {
-            if (_timer is not null)
+            if (_instances.TryGetValue(key, out var existing) && existing.Timer is not null)
             {
-                _timer.Dispose();
-                _timer = null;
-                _remainingSeconds = ReadDuration();
-                CurrentState = state = "ready";
-                _imageBytes = RenderTime(_remainingSeconds, finished: false);
+                existing.Timer.Dispose();
+                var duration = ReadDuration(parameters);
+                _instances[key] = new TimerInstance(duration, "ready", RenderTime(duration, false), null, parameters.ContainsKey("durationSeconds"));
+                state = "ready";
             }
             else
             {
-                _remainingSeconds = ReadDuration();
-                CurrentState = state = "running";
-                _imageBytes = RenderTime(_remainingSeconds, finished: false);
-                _timer = new System.Threading.Timer(Tick, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+                var duration = ReadDuration(parameters);
+                var timer = new System.Threading.Timer(_ => Tick(key), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+                _instances[key] = new TimerInstance(duration, "running", RenderTime(duration, false), timer, parameters.ContainsKey("durationSeconds"));
+                state = "running";
             }
         }
         StateChanged?.Invoke(this, state);
     }
 
-    private void Tick(object? state)
+    private void Tick(TimerInstanceKey key)
     {
         var finished = false;
+        var nextState = "running";
         lock (_sync)
         {
-            if (_timer is null) return;
-            _remainingSeconds = Math.Max(0, _remainingSeconds - 1);
-            finished = _remainingSeconds == 0;
-            CurrentState = finished ? "finished" : "running";
-            _imageBytes = RenderTime(_remainingSeconds, finished);
+            if (!_instances.TryGetValue(key, out var instance) || instance.Timer is null) return;
+            var remaining = Math.Max(0, instance.RemainingSeconds - 1);
+            finished = remaining == 0;
+            nextState = finished ? "finished" : "running";
             if (finished)
             {
-                _timer.Dispose();
-                _timer = null;
+                instance.Timer.Dispose();
             }
+            _instances[key] = new TimerInstance(remaining, nextState, RenderTime(remaining, finished), finished ? null : instance.Timer, instance.UsesOverride);
         }
 
-        StateChanged?.Invoke(this, CurrentState);
+        StateChanged?.Invoke(this, nextState);
         if (finished) _notifications.ShowAlert("Timer finished", "Your countdown has finished.");
     }
 
@@ -160,15 +183,21 @@ internal sealed class TimerController : IPluginDeckStateSource
         if (!string.Equals(e.Key, "durationSeconds", StringComparison.OrdinalIgnoreCase)) return;
         lock (_sync)
         {
-            if (_timer is not null) return;
-            _remainingSeconds = ReadDuration();
-            CurrentState = "ready";
-            _imageBytes = RenderTime(_remainingSeconds, finished: false);
+            foreach (var (key, instance) in _instances.Where(item => item.Value.Timer is null && !item.Value.UsesOverride).ToList())
+            {
+                var duration = ReadDuration();
+                _instances[key] = new TimerInstance(duration, "ready", RenderTime(duration, false), null, false);
+            }
         }
         StateChanged?.Invoke(this, "ready");
     }
 
     private int ReadDuration() => int.Parse(_settings.GetValue("durationSeconds"), CultureInfo.InvariantCulture);
+    private int ReadDuration(IReadOnlyDictionary<string, string> parameters) =>
+        parameters.TryGetValue("durationSeconds", out var value)
+            ? int.Parse(value, CultureInfo.InvariantCulture)
+            : ReadDuration();
+    private static TimerInstanceKey ToKey(PluginVisualContext context) => new(context.DeviceId, context.SceneId, context.ControlIndex);
 
     private static byte[] RenderTime(int seconds, bool finished)
     {
@@ -198,6 +227,14 @@ internal sealed class TimerController : IPluginDeckStateSource
     public void Dispose()
     {
         _settings.Changed -= OnSettingChanged;
-        lock (_sync) { _timer?.Dispose(); _timer = null; }
+        lock (_sync)
+        {
+            foreach (var instance in _instances.Values) instance.Timer?.Dispose();
+            _instances.Clear();
+        }
     }
+
+    private sealed record TimerInstance(int RemainingSeconds, string State, byte[] ImageBytes, System.Threading.Timer? Timer, bool UsesOverride);
 }
+
+internal readonly record struct TimerInstanceKey(string DeviceId, string SceneId, int ControlIndex);

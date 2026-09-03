@@ -67,13 +67,21 @@ public interface IPluginDeckAction
     string DisplayName { get; }
     PluginActionGroup Group { get; }
     PluginActionVisual? Visual => null;
+    IReadOnlyList<PluginSettingDefinition> Parameters => [];
     bool Supports(DeckInputEventType triggerEventType);
     void Execute(PluginActionContext context);
 }
 
 public readonly record struct PluginActionContext(
     MonitoredDeckDevice Device,
+    string SceneId,
     DeckInputEvent InputEvent,
+    IReadOnlyDictionary<string, string> Parameters);
+
+public readonly record struct PluginVisualContext(
+    string DeviceId,
+    string SceneId,
+    int ControlIndex,
     IReadOnlyDictionary<string, string> Parameters);
 
 public sealed record PluginActionGroup(string Id, string DisplayName);
@@ -88,6 +96,8 @@ public interface IPluginDeckStateSource : IDisposable
     string Id { get; }
     string CurrentState { get; }
     byte[]? CurrentImageBytes => null;
+    string GetCurrentState(PluginVisualContext context) => CurrentState;
+    byte[]? GetCurrentImageBytes(PluginVisualContext context) => CurrentImageBytes;
     event EventHandler<string>? StateChanged;
     void Start();
 }

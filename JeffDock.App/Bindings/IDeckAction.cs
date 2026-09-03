@@ -1,4 +1,5 @@
 using JeffDock.Core.Deck;
+using JeffDock.PluginContracts;
 
 namespace JeffDock.App.Bindings;
 
@@ -11,6 +12,7 @@ internal interface IDeckAction
     DeckActionGroup Group { get; }
 
     DeckActionVisualDefinition? Visual => null;
+    IReadOnlyList<PluginSettingDefinition> Parameters => [];
 
     bool Supports(DeckInputEventType triggerEventType);
 
@@ -19,6 +21,7 @@ internal interface IDeckAction
 
 internal readonly record struct DeckActionContext(
     MonitoredDeckDevice Device,
+    string SceneId,
     DeckInputEvent InputEvent,
     IReadOnlyDictionary<string, string> Parameters
 );

@@ -11,6 +11,7 @@ using JeffDock.App.Icons;
 using JeffDock.App.Presets;
 using JeffDock.App.Plugins;
 using JeffDock.Core.Deck;
+using JeffDock.PluginContracts;
 
 namespace JeffDock.App;
 
@@ -29,6 +30,7 @@ public partial class MainWindow : Window
     private readonly Dictionary<(DeckControlType ControlType, int ControlIndex), DeckControlLayout> _controlLayouts = new();
     private readonly Dictionary<Border, Brush> _idleBrushes = new();
     private readonly Dictionary<Border, int> _pulseVersions = new();
+    private readonly Dictionary<string, (PluginSettingDefinition Definition, CheckBox Override, Control Editor)> _buttonSettingEditors = new(StringComparer.OrdinalIgnoreCase);
     private DeckLayoutDefinition? _renderedLayout;
     private (DeckControlType ControlType, int ControlIndex)? _selectedControl;
     private string? _selectedDeviceId;
@@ -1023,6 +1025,7 @@ public partial class MainWindow : Window
                 TurnActionGroupComboBox.ItemsSource = null;
                 PressActionGroupComboBox.ItemsSource = null;
                 KeyboardShortcutRow.Visibility = Visibility.Collapsed;
+                ButtonSettingsPanel.Visibility = Visibility.Collapsed;
                 return;
             }
 
@@ -1064,6 +1067,7 @@ public partial class MainWindow : Window
             }
 
             ConfigureKeyboardShortcutEditor(device, selectedControl.ControlType, selectedControl.ControlIndex);
+            ConfigureButtonSettingsEditor(device, selectedControl.ControlType, selectedControl.ControlIndex);
         }
         finally
         {
@@ -1174,8 +1178,9 @@ public partial class MainWindow : Window
             return;
         }
 
-        var currentState = _actionCatalog.StateCatalog.GetCurrentState(visual.StateSourceId);
-        var generatedBytes = _actionCatalog.StateCatalog.GetCurrentImageBytes(visual.StateSourceId);
+        var parameters = _bindingStore.GetActionParameters(device, DeckControlType.Button, controlIndex, DeckInputEventType.ButtonPress);
+        var currentState = _actionCatalog.StateCatalog.GetCurrentState(visual.StateSourceId, device.DeviceId, scene.Id, controlIndex, parameters);
+        var generatedBytes = _actionCatalog.StateCatalog.GetCurrentImageBytes(visual.StateSourceId, device.DeviceId, scene.Id, controlIndex, parameters);
         DynamicIconStateText.Text = $"Current state: {currentState}";
         foreach (var state in visual.States)
         {
@@ -1227,6 +1232,74 @@ public partial class MainWindow : Window
             removeButton.Click += DynamicStateRemoveButton_OnClick;
             row.Children.Add(removeButton);
             DynamicIconStatesPanel.Children.Add(row);
+        }
+    }
+
+    private void ConfigureButtonSettingsEditor(MonitoredDeckDevice device, DeckControlType controlType, int controlIndex)
+    {
+        var eventType = controlType == DeckControlType.Button ? DeckInputEventType.ButtonPress : DeckInputEventType.EncoderPress;
+        var action = _actionCatalog.GetAction(_bindingStore.GetActionId(device, controlType, controlIndex, eventType));
+        ButtonSettingsFieldsPanel.Children.Clear();
+        _buttonSettingEditors.Clear();
+        ButtonSettingsPanel.Visibility = action.Parameters.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (action.Parameters.Count == 0) return;
+
+        var values = _bindingStore.GetActionParameters(device, controlType, controlIndex, eventType);
+        foreach (var definition in action.Parameters)
+        {
+            var hasOverride = values.TryGetValue(definition.Key, out var storedValue);
+            var row = new Grid { Margin = new Thickness(0, 0, 0, 7) };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            var left = new StackPanel();
+            left.Children.Add(new TextBlock { Text = definition.DisplayName, FontWeight = FontWeights.SemiBold });
+            if (!string.IsNullOrWhiteSpace(definition.Description))
+                left.Children.Add(new TextBlock { Text = definition.Description, Foreground = (Brush)FindResource("MutedTextBrush"), TextWrapping = TextWrapping.Wrap, MaxWidth = 380 });
+            row.Children.Add(left);
+
+            var editor = new TextBox { Text = storedValue ?? definition.DefaultValue, Width = 85, Margin = new Thickness(8, 0, 0, 0) };
+            var overrideBox = new CheckBox { Content = "Override", IsChecked = hasOverride, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+            editor.IsEnabled = hasOverride;
+            overrideBox.Checked += (_, _) => editor.IsEnabled = true;
+            overrideBox.Unchecked += (_, _) => editor.IsEnabled = false;
+            var right = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+            right.Children.Add(overrideBox);
+            right.Children.Add(editor);
+            if (!string.IsNullOrWhiteSpace(definition.Suffix)) right.Children.Add(new TextBlock { Text = definition.Suffix, Margin = new Thickness(5, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
+            Grid.SetColumn(right, 1);
+            row.Children.Add(right);
+            ButtonSettingsFieldsPanel.Children.Add(row);
+            _buttonSettingEditors[definition.Key] = (definition, overrideBox, editor);
+        }
+    }
+
+    private void ApplyButtonSettings_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (GetSelectedDevice() is not { } device || _selectedControl is not { } selected) return;
+        var eventType = selected.ControlType == DeckControlType.Button ? DeckInputEventType.ButtonPress : DeckInputEventType.EncoderPress;
+        try
+        {
+            foreach (var (key, entry) in _buttonSettingEditors)
+            {
+                string? value = null;
+                if (entry.Override.IsChecked == true)
+                {
+                    value = ((TextBox)entry.Editor).Text.Trim();
+                    if (entry.Definition.Type == PluginSettingType.Integer
+                        && (!long.TryParse(value, out var number)
+                            || entry.Definition.Minimum.HasValue && number < entry.Definition.Minimum
+                            || entry.Definition.Maximum.HasValue && number > entry.Definition.Maximum))
+                        throw new FormatException($"Enter a valid value for {entry.Definition.DisplayName}.");
+                }
+                _bindingStore.SetActionParameter(device, selected.ControlType, selected.ControlIndex, eventType, key, value);
+            }
+            RefreshButtonIcons();
+            QueueIconSync(device);
+            RefreshBindingEditor();
+        }
+        catch (FormatException exception)
+        {
+            MessageBox.Show(this, exception.Message, "Invalid button setting", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
@@ -1510,8 +1583,9 @@ public partial class MainWindow : Window
             return null;
         }
 
-        var currentState = _actionCatalog.StateCatalog.GetCurrentState(visual.StateSourceId);
-        var generatedBytes = _actionCatalog.StateCatalog.GetCurrentImageBytes(visual.StateSourceId);
+        var parameters = _bindingStore.GetActionParameters(device, DeckControlType.Button, buttonIndex, DeckInputEventType.ButtonPress);
+        var currentState = _actionCatalog.StateCatalog.GetCurrentState(visual.StateSourceId, device.DeviceId, scene.Id, buttonIndex, parameters);
+        var generatedBytes = _actionCatalog.StateCatalog.GetCurrentImageBytes(visual.StateSourceId, device.DeviceId, scene.Id, buttonIndex, parameters);
         if (generatedBytes is not null)
         {
             return generatedBytes;

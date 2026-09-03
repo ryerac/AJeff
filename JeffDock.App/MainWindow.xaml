@@ -145,6 +145,24 @@
                                     Padding="12,4"
                                     Click="ClearKeyboardShortcutButton_OnClick" />
                         </StackPanel>
+
+                        <Border x:Name="ButtonSettingsPanel"
+                                Margin="100,10,0,0"
+                                Padding="10"
+                                BorderBrush="#E1E5EC"
+                                BorderThickness="1"
+                                CornerRadius="7"
+                                Background="White"
+                                Visibility="Collapsed">
+                            <StackPanel>
+                                <TextBlock Text="Button settings" FontWeight="SemiBold" Margin="0,0,0,8" />
+                                <StackPanel x:Name="ButtonSettingsFieldsPanel" />
+                                <Button Content="Apply settings"
+                                        HorizontalAlignment="Left"
+                                        Margin="0,8,0,0"
+                                        Click="ApplyButtonSettings_OnClick" />
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </Border>
 
