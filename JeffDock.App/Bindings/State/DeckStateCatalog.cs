@@ -33,6 +33,11 @@ internal sealed class DeckStateCatalog : IDisposable
         return _sources.GetValueOrDefault(sourceId)?.CurrentState ?? "unknown";
     }
 
+    public byte[]? GetCurrentImageBytes(string sourceId)
+    {
+        return _sources.GetValueOrDefault(sourceId)?.CurrentImageBytes;
+    }
+
     private void OnStateChanged(object? sender, string state)
     {
         if (sender is IDeckStateSource source)

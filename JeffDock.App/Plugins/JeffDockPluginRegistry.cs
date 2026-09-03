@@ -4,6 +4,7 @@ namespace JeffDock.App.Plugins;
 
 internal sealed class JeffDockPluginRegistry : IJeffDockPluginRegistry
 {
+    public IPluginNotifications Notifications { get; } = new WpfPluginNotifications();
     public List<IPluginDeckAction> Actions { get; } = [];
     public List<IPluginDeckStateSource> StateSources { get; } = [];
     public List<string> PresetJson { get; } = [];
@@ -23,5 +24,19 @@ internal sealed class JeffDockPluginRegistry : IJeffDockPluginRegistry
         var settings = new PluginSettingsStore(pluginId, definitions);
         Settings.Add(pluginId, settings);
         return settings;
+    }
+}
+
+internal sealed class WpfPluginNotifications : IPluginNotifications
+{
+    public void ShowAlert(string title, string message)
+    {
+        System.Windows.Application.Current.Dispatcher.BeginInvoke(() =>
+            System.Windows.MessageBox.Show(
+                System.Windows.Application.Current.MainWindow,
+                message,
+                title,
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Information));
     }
 }

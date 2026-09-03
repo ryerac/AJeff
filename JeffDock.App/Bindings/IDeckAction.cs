@@ -25,7 +25,8 @@ internal readonly record struct DeckActionContext(
 
 internal sealed record DeckActionVisualDefinition(
     string StateSourceId,
-    IReadOnlyList<DeckActionVisualState> States);
+    IReadOnlyList<DeckActionVisualState> States,
+    bool IsImageManaged = false);
 
 internal sealed record DeckActionVisualState(
     string Id,

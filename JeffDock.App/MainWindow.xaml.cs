@@ -1144,10 +1144,24 @@ public partial class MainWindow : Window
             mode = DeckIconMode.Static;
         }
 
+        if (visual?.IsImageManaged == true)
+        {
+            IconModeComboBox.ItemsSource = new[] { "N/A — managed by plugin" };
+            IconModeComboBox.SelectedIndex = 0;
+            IconModeComboBox.IsEnabled = false;
+            StaticIconRow.Visibility = Visibility.Collapsed;
+            DynamicIconPanel.Visibility = Visibility.Collapsed;
+            RemoveIconButton.IsEnabled = false;
+            DynamicIconStatesPanel.Children.Clear();
+            DynamicIconStateText.Text = string.Empty;
+            return;
+        }
+
         IconModeComboBox.ItemsSource = visual is null
             ? new[] { DeckIconMode.Static }
             : Enum.GetValues<DeckIconMode>();
         IconModeComboBox.SelectedItem = mode;
+        IconModeComboBox.IsEnabled = true;
         StaticIconRow.Visibility = mode == DeckIconMode.Static ? Visibility.Visible : Visibility.Collapsed;
         DynamicIconPanel.Visibility = mode == DeckIconMode.Dynamic ? Visibility.Visible : Visibility.Collapsed;
         RemoveIconButton.IsEnabled = mode == DeckIconMode.Static
@@ -1161,11 +1175,13 @@ public partial class MainWindow : Window
         }
 
         var currentState = _actionCatalog.StateCatalog.GetCurrentState(visual.StateSourceId);
+        var generatedBytes = _actionCatalog.StateCatalog.GetCurrentImageBytes(visual.StateSourceId);
         DynamicIconStateText.Text = $"Current state: {currentState}";
         foreach (var state in visual.States)
         {
             var customPath = _iconStore.FindStateIconPath(device.DeviceId, scene.Id, controlIndex, state.Id);
-            var previewBytes = ReadIconBytes(customPath)
+            var previewBytes = generatedBytes
+                               ?? ReadIconBytes(customPath)
                                ?? (state.DefaultIconId is null
                                    ? null
                                    : _iconLibraryCatalog.FindIcon(state.DefaultIconId)?.ImageBytes);
@@ -1495,6 +1511,11 @@ public partial class MainWindow : Window
         }
 
         var currentState = _actionCatalog.StateCatalog.GetCurrentState(visual.StateSourceId);
+        var generatedBytes = _actionCatalog.StateCatalog.GetCurrentImageBytes(visual.StateSourceId);
+        if (generatedBytes is not null)
+        {
+            return generatedBytes;
+        }
         var state = visual.States.FirstOrDefault(candidate =>
             string.Equals(candidate.Id, currentState, StringComparison.OrdinalIgnoreCase));
         if (state is null)

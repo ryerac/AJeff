@@ -12,7 +12,8 @@ internal sealed class PluginActionAdapter(IPluginDeckAction action) : IDeckActio
     public DeckActionGroup Group { get; } = new(action.Group.Id, action.Group.DisplayName);
     public DeckActionVisualDefinition? Visual { get; } = action.Visual is null ? null : new(
         action.Visual.StateSourceId,
-        action.Visual.States.Select(state => new DeckActionVisualState(state.Id, state.DisplayName, state.DefaultIconId)).ToList());
+        action.Visual.States.Select(state => new DeckActionVisualState(state.Id, state.DisplayName, state.DefaultIconId)).ToList(),
+        action.Visual.IsImageManaged);
     public bool Supports(DeckInputEventType triggerEventType) => action.Supports(triggerEventType);
     public void Execute(DeckActionContext context) => action.Execute(new(
         context.Device, context.InputEvent, context.Parameters));
@@ -30,6 +31,7 @@ internal sealed class PluginStateSourceAdapter : IDeckStateSource
 
     public string Id => _source.Id;
     public string CurrentState => _source.CurrentState;
+    public byte[]? CurrentImageBytes => _source.CurrentImageBytes;
     public event EventHandler<string>? StateChanged;
     public void Start() => _source.Start();
 

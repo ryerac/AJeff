@@ -1,0 +1,8 @@
+{
+  "id": "jeffdock.timer",
+  "name": "Timer",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "entryAssembly": "JeffDock.Plugins.Timer.dll",
+  "entryType": "JeffDock.Plugins.Timer.TimerPlugin"
+}

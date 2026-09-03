@@ -6,6 +6,8 @@ internal interface IDeckStateSource : IDisposable
 
     string CurrentState { get; }
 
+    byte[]? CurrentImageBytes => null;
+
     event EventHandler<string>? StateChanged;
 
     void Start();

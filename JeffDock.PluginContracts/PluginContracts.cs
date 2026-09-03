@@ -12,10 +12,16 @@ public interface IJeffDockPlugin
 
 public interface IJeffDockPluginRegistry
 {
+    IPluginNotifications Notifications { get; }
     void AddAction(IPluginDeckAction action);
     void AddStateSource(IPluginDeckStateSource stateSource);
     void AddPresetJson(string json);
     IPluginSettings AddSettings(string pluginId, IReadOnlyList<PluginSettingDefinition> definitions);
+}
+
+public interface IPluginNotifications
+{
+    void ShowAlert(string title, string message);
 }
 
 public enum PluginSettingType
@@ -71,13 +77,17 @@ public readonly record struct PluginActionContext(
     IReadOnlyDictionary<string, string> Parameters);
 
 public sealed record PluginActionGroup(string Id, string DisplayName);
-public sealed record PluginActionVisual(string StateSourceId, IReadOnlyList<PluginActionVisualState> States);
+public sealed record PluginActionVisual(
+    string StateSourceId,
+    IReadOnlyList<PluginActionVisualState> States,
+    bool IsImageManaged = false);
 public sealed record PluginActionVisualState(string Id, string DisplayName, string? DefaultIconId = null);
 
 public interface IPluginDeckStateSource : IDisposable
 {
     string Id { get; }
     string CurrentState { get; }
+    byte[]? CurrentImageBytes => null;
     event EventHandler<string>? StateChanged;
     void Start();
 }
