@@ -5,6 +5,7 @@
     <ProjectReference Include="..\JeffDock.PluginContracts\JeffDock.PluginContracts.csproj" />
     <ProjectReference Include="..\JeffDock.Plugins\JeffDock.Plugins.MouseMover\JeffDock.Plugins.MouseMover.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\JeffDock.Plugins\JeffDock.Plugins.Timer\JeffDock.Plugins.Timer.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\JeffDock.Plugins\JeffDock.Plugins.Game\JeffDock.Plugins.Game.csproj" ReferenceOutputAssembly="false" />
     <PackageReference Include="Svg.Skia" Version="5.2.3" />
   </ItemGroup>
 
@@ -38,11 +39,15 @@
       <OfficialPluginFiles Include="..\JeffDock.Plugins\JeffDock.Plugins.MouseMover\plugin.json" />
       <OfficialTimerPluginFiles Include="..\JeffDock.Plugins\JeffDock.Plugins.Timer\bin\$(Configuration)\net10.0-windows\JeffDock.Plugins.Timer.dll" />
       <OfficialTimerPluginFiles Include="..\JeffDock.Plugins\JeffDock.Plugins.Timer\plugin.json" />
+      <OfficialGamePluginFiles Include="..\JeffDock.Plugins\JeffDock.Plugins.Game\bin\$(Configuration)\net10.0-windows\JeffDock.Plugins.Game.dll" />
+      <OfficialGamePluginFiles Include="..\JeffDock.Plugins\JeffDock.Plugins.Game\plugin.json" />
     </ItemGroup>
     <MakeDir Directories="$(OutDir)Plugins\MouseMover" />
     <Copy SourceFiles="@(OfficialPluginFiles)" DestinationFolder="$(OutDir)Plugins\MouseMover" SkipUnchangedFiles="true" />
     <MakeDir Directories="$(OutDir)Plugins\Timer" />
     <Copy SourceFiles="@(OfficialTimerPluginFiles)" DestinationFolder="$(OutDir)Plugins\Timer" SkipUnchangedFiles="true" />
+    <MakeDir Directories="$(OutDir)Plugins\Game" />
+    <Copy SourceFiles="@(OfficialGamePluginFiles)" DestinationFolder="$(OutDir)Plugins\Game" SkipUnchangedFiles="true" />
   </Target>
 
 </Project>

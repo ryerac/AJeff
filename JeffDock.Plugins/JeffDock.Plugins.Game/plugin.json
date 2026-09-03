@@ -1,0 +1,8 @@
+{
+  "id": "jeffdock.game",
+  "name": "Fun",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "entryAssembly": "JeffDock.Plugins.Game.dll",
+  "entryType": "JeffDock.Plugins.Game.GamePlugin"
+}
