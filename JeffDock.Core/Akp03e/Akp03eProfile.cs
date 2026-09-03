@@ -38,6 +38,11 @@ public sealed class Akp03eProfile : IDeckProtocolProfile, IDeckButtonImageProfil
         return Akp03eButtonImageProtocol.BuildClearButtonImages();
     }
 
+    public IReadOnlyList<byte[]> BuildSleepPackets()
+    {
+        return Akp03eButtonImageProtocol.BuildSleepPackets();
+    }
+
     public byte[] BuildBrightnessPacket(int percentage)
     {
         return Akp03eButtonImageProtocol.BuildBrightnessPacket(percentage);

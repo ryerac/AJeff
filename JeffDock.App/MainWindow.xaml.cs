@@ -29,6 +29,7 @@ public partial class MainWindow : Window
     private string? _selectedDeviceId;
     private bool _isUpdatingBindingEditor;
     private bool _isUpdatingSceneEditor;
+    private int _decksSleeping;
 
     public MainWindow()
     {
@@ -46,12 +47,17 @@ public partial class MainWindow : Window
         _monitor.DeviceLogChanged += OnDeviceLogChanged;
         _monitor.InputEventReceived += OnInputEventReceived;
         _monitor.Start();
+        SystemEvents.PowerModeChanged += OnPowerModeChanged;
+        Application.Current.SessionEnding += OnSessionEnding;
 
         RefreshUi();
     }
 
     protected override void OnClosed(EventArgs e)
     {
+        SleepDecks();
+        SystemEvents.PowerModeChanged -= OnPowerModeChanged;
+        Application.Current.SessionEnding -= OnSessionEnding;
         _monitor.DevicesChanged -= OnDevicesChanged;
         _monitor.DeviceLogChanged -= OnDeviceLogChanged;
         _monitor.InputEventReceived -= OnInputEventReceived;
@@ -60,6 +66,42 @@ public partial class MainWindow : Window
         _monitor.Dispose();
         _actionCatalog.Dispose();
         base.OnClosed(e);
+    }
+
+    private void OnSessionEnding(object sender, SessionEndingCancelEventArgs e)
+    {
+        SleepDecks();
+    }
+
+    private void OnPowerModeChanged(object sender, PowerModeChangedEventArgs e)
+    {
+        if (e.Mode == PowerModes.Suspend)
+        {
+            SleepDecks();
+            return;
+        }
+
+        if (e.Mode != PowerModes.Resume || Interlocked.Exchange(ref _decksSleeping, 0) == 0)
+        {
+            return;
+        }
+
+        _monitor.WakeAllDevices();
+        _ = Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+        {
+            foreach (var device in _monitor.GetConnectedDevices().DistinctBy(device => device.DeviceId))
+            {
+                QueueIconSync(device);
+            }
+        }));
+    }
+
+    private void SleepDecks()
+    {
+        if (Interlocked.Exchange(ref _decksSleeping, 1) == 0)
+        {
+            _monitor.SleepAllDevices();
+        }
     }
 
     private void DevicesListBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -851,15 +893,20 @@ public partial class MainWindow : Window
         foreach (var state in visual.States)
         {
             var customPath = _iconStore.FindStateIconPath(device.DeviceId, scene.Id, controlIndex, state.Id);
+            var previewBytes = ReadIconBytes(customPath)
+                               ?? (state.DefaultIconId is null
+                                   ? null
+                                   : _iconLibraryCatalog.FindIcon(state.DefaultIconId)?.ImageBytes);
             var sourceDescription = customPath is not null
                 ? "Custom"
                 : state.DefaultIconId is not null ? "Action default" : "Blank";
 
             var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
+            row.Children.Add(BuildDynamicStatePreview(previewBytes, state.DisplayName));
             row.Children.Add(new TextBlock
             {
                 Text = state.DisplayName,
-                Width = 90,
+                Width = 80,
                 VerticalAlignment = VerticalAlignment.Center,
                 FontWeight = string.Equals(state.Id, currentState, StringComparison.OrdinalIgnoreCase)
                     ? FontWeights.Bold
@@ -868,7 +915,7 @@ public partial class MainWindow : Window
             row.Children.Add(new TextBlock
             {
                 Text = sourceDescription,
-                Width = 95,
+                Width = 80,
                 Foreground = CreateBrush("#666666"),
                 VerticalAlignment = VerticalAlignment.Center,
             });
@@ -893,6 +940,57 @@ public partial class MainWindow : Window
             row.Children.Add(removeButton);
             DynamicIconStatesPanel.Children.Add(row);
         }
+    }
+
+    private static Border BuildDynamicStatePreview(byte[]? iconBytes, string stateName)
+    {
+        var preview = new Border
+        {
+            Width = 38,
+            Height = 38,
+            Margin = new Thickness(0, 0, 8, 0),
+            Background = CreateBrush("#222222"),
+            BorderBrush = CreateBrush("#555555"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(4),
+            ToolTip = $"{stateName} icon preview",
+        };
+
+        if (iconBytes is null)
+        {
+            preview.Child = new TextBlock
+            {
+                Text = "—",
+                Foreground = CreateBrush("#999999"),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            return preview;
+        }
+
+        try
+        {
+            var bitmap = new System.Windows.Media.Imaging.BitmapImage();
+            bitmap.BeginInit();
+            bitmap.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+            using var stream = new MemoryStream(iconBytes, writable: false);
+            bitmap.StreamSource = stream;
+            bitmap.EndInit();
+            bitmap.Freeze();
+            preview.Child = new Image { Source = bitmap, Stretch = Stretch.UniformToFill };
+        }
+        catch
+        {
+            preview.Child = new TextBlock
+            {
+                Text = "!",
+                Foreground = Brushes.OrangeRed,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+        }
+
+        return preview;
     }
 
     private void RefreshSceneEditor()

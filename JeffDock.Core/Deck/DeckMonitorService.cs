@@ -109,6 +109,68 @@ public sealed class DeckMonitorService : IDisposable
         }
     }
 
+    public void SleepAllDevices()
+    {
+        foreach (var session in _sessions.Values)
+        {
+            if (session.Connection.Profile is not IDeckButtonImageProfile profile)
+            {
+                continue;
+            }
+
+            try
+            {
+                lock (session.OutputLock)
+                {
+                    foreach (var packet in profile.BuildSleepPackets())
+                    {
+                        session.Connection.Stream.Write(packet);
+                    }
+                }
+
+                AddLogLine(session, "display entered standby");
+            }
+            catch (Exception exception) when (exception is IOException or ObjectDisposedException or TimeoutException)
+            {
+                AddLogLine(session, $"display standby failed: {exception.Message}");
+            }
+        }
+    }
+
+    public void WakeAllDevices(int brightness = 80)
+    {
+        foreach (var session in _sessions.Values)
+        {
+            if (session.Connection.Profile is not IDeckButtonImageProfile profile)
+            {
+                continue;
+            }
+
+            try
+            {
+                lock (session.OutputLock)
+                {
+                    if (session.Connection.Profile.InitializePacket is { } initializePacket)
+                    {
+                        session.Connection.Stream.Write(initializePacket);
+                    }
+
+                    session.Connection.Stream.Write(profile.BuildBrightnessPacket(brightness));
+                    foreach (var packet in profile.BuildClearButtonImages())
+                    {
+                        session.Connection.Stream.Write(packet);
+                    }
+                }
+
+                AddLogLine(session, "display resumed");
+            }
+            catch (Exception exception) when (exception is IOException or ObjectDisposedException or TimeoutException)
+            {
+                AddLogLine(session, $"display resume failed: {exception.Message}");
+            }
+        }
+    }
+
     public void Dispose()
     {
         _scanCts?.Cancel();

@@ -12,5 +12,7 @@ public interface IDeckButtonImageProfile
 
     IReadOnlyList<byte[]> BuildClearButtonImages();
 
+    IReadOnlyList<byte[]> BuildSleepPackets();
+
     byte[] BuildBrightnessPacket(int percentage);
 }

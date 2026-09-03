@@ -60,6 +60,15 @@ public static class Akp03eButtonImageProtocol
         return [BuildCommandPacket(clearCommand), BuildCommandPacket("STP"u8)];
     }
 
+    public static IReadOnlyList<byte[]> BuildSleepPackets()
+    {
+        Span<byte> shutdownCommand = stackalloc byte[]
+        {
+            (byte)'C', (byte)'L', (byte)'E', 0, 0, (byte)'D', (byte)'C',
+        };
+        return [BuildCommandPacket(shutdownCommand), BuildCommandPacket("HAN"u8)];
+    }
+
     private static byte[] BuildAnnouncePacket(int controlIndex, int imageLength)
     {
         Span<byte> command = stackalloc byte[]

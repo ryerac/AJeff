@@ -6,6 +6,7 @@ internal sealed class KeyboardShortcutAction : IDeckAction
 {
     public const string ActionId = "core.keyboard.shortcut";
     public const string ShortcutParameter = "shortcut";
+    private const int PressCooldownMilliseconds = 1000;
 
     private readonly object _sync = new();
     private readonly Dictionary<string, DateTime> _lastPressByKey = new(StringComparer.OrdinalIgnoreCase);
@@ -26,7 +27,7 @@ internal sealed class KeyboardShortcutAction : IDeckAction
         if (!context.Parameters.TryGetValue(ShortcutParameter, out var value)
             || !KeyboardShortcut.TryParse(value, out var shortcut)
             || shortcut is null
-            || ShouldDebounce(context, 150))
+            || ShouldDebounce(context, PressCooldownMilliseconds))
         {
             return;
         }

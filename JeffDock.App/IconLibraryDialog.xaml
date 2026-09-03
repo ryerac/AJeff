@@ -41,8 +41,16 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="Foreground" Width="76" VerticalAlignment="Center" />
                             <TextBox x:Name="ForegroundTextBox" Width="90" Text="#FFFFFF" TextChanged="ColourTextBox_OnTextChanged" />
+                            <Button x:Name="ForegroundColourButton"
+                                    Width="26" Height="22" Margin="5,0,0,0"
+                                    ToolTip="Choose foreground colour"
+                                    Click="ForegroundColourButton_OnClick" />
                             <TextBlock Text="Background" Margin="16,0,6,0" VerticalAlignment="Center" />
                             <TextBox x:Name="BackgroundTextBox" Width="90" Text="#000000" TextChanged="ColourTextBox_OnTextChanged" />
+                            <Button x:Name="BackgroundColourButton"
+                                    Width="26" Height="22" Margin="5,0,0,0"
+                                    ToolTip="Choose background colour"
+                                    Click="BackgroundColourButton_OnClick" />
                             <CheckBox x:Name="TransparentBackgroundCheckBox" Content="Transparent" Margin="12,0,0,0" VerticalAlignment="Center" Checked="BackgroundMode_OnChanged" Unchecked="BackgroundMode_OnChanged" />
                         </StackPanel>
                         <TextBlock x:Name="ColourErrorText" Foreground="#C62828" Margin="0,5,0,0" />

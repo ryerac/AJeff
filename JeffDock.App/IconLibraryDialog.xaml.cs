@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using JeffDock.App.Icons;
 
 namespace JeffDock.App;
@@ -144,7 +145,67 @@ public partial class IconLibraryDialog : Window
 
     private void ColourTextBox_OnTextChanged(object sender, TextChangedEventArgs e)
     {
+        UpdateColourSwatches();
         UpdateSelectedPreview();
+    }
+
+    private void ForegroundColourButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        PickColour(ForegroundTextBox);
+    }
+
+    private void BackgroundColourButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        PickColour(BackgroundTextBox);
+    }
+
+    private void PickColour(TextBox target)
+    {
+        using var picker = new System.Windows.Forms.ColorDialog
+        {
+            AllowFullOpen = true,
+            FullOpen = true,
+            AnyColor = true,
+        };
+
+        try
+        {
+            var current = (Color)ColorConverter.ConvertFromString(SvgIconRenderer.NormalizeColor(target.Text));
+            picker.Color = System.Drawing.Color.FromArgb(current.R, current.G, current.B);
+        }
+        catch (FormatException)
+        {
+            // An invalid typed value should not prevent the picker from opening.
+        }
+
+        if (picker.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+        {
+            target.Text = $"#{picker.Color.R:X2}{picker.Color.G:X2}{picker.Color.B:X2}";
+        }
+    }
+
+    private void UpdateColourSwatches()
+    {
+        SetSwatch(ForegroundColourButton, ForegroundTextBox);
+        SetSwatch(BackgroundColourButton, BackgroundTextBox);
+    }
+
+    private static void SetSwatch(Button? button, TextBox? textBox)
+    {
+        if (button is null || textBox is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var colour = (Color)ColorConverter.ConvertFromString(SvgIconRenderer.NormalizeColor(textBox.Text));
+            button.Background = new SolidColorBrush(colour);
+        }
+        catch (FormatException)
+        {
+            button.Background = Brushes.Transparent;
+        }
     }
 
     private void BackgroundMode_OnChanged(object sender, RoutedEventArgs e)
@@ -152,6 +213,7 @@ public partial class IconLibraryDialog : Window
         if (BackgroundTextBox is not null)
         {
             BackgroundTextBox.IsEnabled = TransparentBackgroundCheckBox.IsChecked != true;
+            BackgroundColourButton.IsEnabled = TransparentBackgroundCheckBox.IsChecked != true;
         }
 
         UpdateSelectedPreview();
