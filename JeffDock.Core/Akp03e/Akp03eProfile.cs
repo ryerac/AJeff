@@ -113,7 +113,7 @@ public sealed class Akp03eProfile : IDeckProtocolProfile, IDeckButtonImageProfil
                 new DeckControlLayout(DeckControlType.Button, 6, DeckControlVisualKind.RoundButton, 10, 176, 56, 32, "6"),
                 new DeckControlLayout(DeckControlType.Button, 7, DeckControlVisualKind.RoundButton, 92, 176, 56, 32, "7"),
                 new DeckControlLayout(DeckControlType.Button, 8, DeckControlVisualKind.RoundButton, 174, 176, 56, 32, "8"),
-                new DeckControlLayout(DeckControlType.Encoder, 1, DeckControlVisualKind.Knob, 310, 8, 110, 110, "1"),
+                new DeckControlLayout(DeckControlType.Encoder, 1, DeckControlVisualKind.Knob, 320, 8, 110, 110, "1"),
                 new DeckControlLayout(DeckControlType.Encoder, 0, DeckControlVisualKind.Knob, 300, 136, 70, 70, "0"),
                 new DeckControlLayout(DeckControlType.Encoder, 2, DeckControlVisualKind.Knob, 380, 136, 70, 70, "2"),
             ],
