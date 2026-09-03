@@ -9,6 +9,7 @@ using JeffDock.App.Bindings;
 using JeffDock.App.Bindings.Core;
 using JeffDock.App.Icons;
 using JeffDock.App.Presets;
+using JeffDock.App.Plugins;
 using JeffDock.Core.Deck;
 
 namespace JeffDock.App;
@@ -23,6 +24,7 @@ public partial class MainWindow : Window
     private readonly DeckActionCatalog _actionCatalog;
     private readonly DeckActionExecutor _actionExecutor;
     private readonly DeckPresetCatalog _presetCatalog;
+    private readonly JeffDockPluginLoader _pluginLoader;
     private readonly Dictionary<(DeckControlType ControlType, int ControlIndex), Border> _controlVisuals = new();
     private readonly Dictionary<(DeckControlType ControlType, int ControlIndex), DeckControlLayout> _controlLayouts = new();
     private readonly Dictionary<Border, Brush> _idleBrushes = new();
@@ -41,11 +43,13 @@ public partial class MainWindow : Window
         _bindingStore = new DeckBindingStore();
         _iconStore = new DeckIconStore();
         _iconLibraryCatalog = new IconLibraryCatalog();
+        _pluginLoader = new JeffDockPluginLoader();
+        _pluginLoader.LoadAll();
         _bindingStore.ActiveSceneChanged += OnActiveSceneChanged;
-        _actionCatalog = new DeckActionCatalog(_bindingStore);
+        _actionCatalog = new DeckActionCatalog(_bindingStore, _pluginLoader.Registry);
         _actionCatalog.StateCatalog.StateChanged += OnDeckStateChanged;
         _actionExecutor = new DeckActionExecutor(_actionCatalog);
-        _presetCatalog = new DeckPresetCatalog();
+        _presetCatalog = new DeckPresetCatalog(_pluginLoader.Registry.PresetJson);
         _monitor = new DeckMonitorService(DeckProfileCatalog.SupportedProfiles, maxLinesPerDevice: 100);
         _monitor.DevicesChanged += OnDevicesChanged;
         _monitor.DeviceLogChanged += OnDeviceLogChanged;
@@ -71,6 +75,11 @@ public partial class MainWindow : Window
         _monitor.Dispose();
         _actionCatalog.Dispose();
         base.OnClosed(e);
+    }
+
+    private void PluginSettingsButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        new PluginSettingsWindow(_pluginLoader) { Owner = this }.ShowDialog();
     }
 
     private void OnSessionEnding(object sender, SessionEndingCancelEventArgs e)

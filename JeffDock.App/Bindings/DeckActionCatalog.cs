@@ -3,6 +3,7 @@ using JeffDock.App.Bindings.Scenes;
 using JeffDock.App.Bindings.State;
 using JeffDock.Core.Audio;
 using JeffDock.Core.Deck;
+using JeffDock.App.Plugins;
 
 namespace JeffDock.App.Bindings;
 
@@ -14,11 +15,11 @@ internal sealed class DeckActionCatalog : IDisposable
 
     public DeckStateCatalog StateCatalog { get; }
 
-    public DeckActionCatalog(DeckBindingStore bindingStore)
+    public DeckActionCatalog(DeckBindingStore bindingStore, JeffDockPluginRegistry plugins)
     {
-        StateCatalog = new DeckStateCatalog(_volumeController);
-        _actions =
-        [
+        StateCatalog = new DeckStateCatalog(_volumeController, plugins.StateSources.Select(source => new PluginStateSourceAdapter(source)));
+        var actions = new List<IDeckAction>
+        {
             new NoAction(),
             new VolumeAdjustAction(_volumeController),
             new ToggleMuteAction(_volumeController),
@@ -32,7 +33,9 @@ internal sealed class DeckActionCatalog : IDisposable
             new VolumeStepAction(_volumeController, VolumeStepAction.DownActionId, "Volume Down", -1),
             new SceneCycleAction(bindingStore, SceneCycleAction.NextActionId, "Next Scene", 1),
             new SceneCycleAction(bindingStore, SceneCycleAction.PreviousActionId, "Previous Scene", -1),
-        ];
+        };
+        actions.AddRange(plugins.Actions.Select(action => new PluginActionAdapter(action)));
+        _actions = actions;
 
         _actionsById = _actions.ToDictionary(action => action.Id, StringComparer.OrdinalIgnoreCase);
     }

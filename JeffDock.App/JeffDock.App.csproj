@@ -2,6 +2,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\JeffDock.Core\JeffDock.Core.csproj" />
+    <ProjectReference Include="..\JeffDock.PluginContracts\JeffDock.PluginContracts.csproj" />
+    <ProjectReference Include="..\JeffDock.Plugins\JeffDock.Plugins.MouseMover\JeffDock.Plugins.MouseMover.csproj" ReferenceOutputAssembly="false" />
     <PackageReference Include="Svg.Skia" Version="5.2.3" />
   </ItemGroup>
 
@@ -28,5 +30,14 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
+
+  <Target Name="CopyOfficialPlugins" AfterTargets="Build">
+    <ItemGroup>
+      <OfficialPluginFiles Include="..\JeffDock.Plugins\JeffDock.Plugins.MouseMover\bin\$(Configuration)\net10.0-windows\JeffDock.Plugins.MouseMover.dll" />
+      <OfficialPluginFiles Include="..\JeffDock.Plugins\JeffDock.Plugins.MouseMover\plugin.json" />
+    </ItemGroup>
+    <MakeDir Directories="$(OutDir)Plugins\MouseMover" />
+    <Copy SourceFiles="@(OfficialPluginFiles)" DestinationFolder="$(OutDir)Plugins\MouseMover" SkipUnchangedFiles="true" />
+  </Target>
 
 </Project>

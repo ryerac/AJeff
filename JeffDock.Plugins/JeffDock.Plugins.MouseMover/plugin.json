@@ -1,0 +1,8 @@
+{
+  "id": "jeffdock.mouse-mover",
+  "name": "Mouse Mover",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "entryAssembly": "JeffDock.Plugins.MouseMover.dll",
+  "entryType": "JeffDock.Plugins.MouseMover.MouseMoverPlugin"
+}

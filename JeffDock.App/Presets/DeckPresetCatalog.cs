@@ -11,7 +11,7 @@ internal sealed class DeckPresetCatalog
 
     public IReadOnlyList<DeckPresetSection> Sections { get; }
 
-    public DeckPresetCatalog()
+    public DeckPresetCatalog(IEnumerable<string>? pluginPresetJson = null)
     {
         var configurations = new List<DeckPresetConfiguration>();
         var assembly = typeof(DeckPresetCatalog).Assembly;
@@ -23,6 +23,22 @@ internal sealed class DeckPresetCatalog
             if (stream is not null)
             {
                 configurations.Add(ReadConfiguration(stream));
+            }
+        }
+
+        if (pluginPresetJson is not null)
+        {
+            foreach (var json in pluginPresetJson)
+            {
+                try
+                {
+                    configurations.Add(JsonSerializer.Deserialize<DeckPresetConfiguration>(json, _jsonOptions)
+                        ?? new DeckPresetConfiguration(1, []));
+                }
+                catch (JsonException)
+                {
+                    // One malformed plugin preset must not prevent other plugins from loading.
+                }
             }
         }
 

@@ -6,13 +6,17 @@ internal sealed class DeckStateCatalog : IDisposable
 {
     private readonly IReadOnlyDictionary<string, IDeckStateSource> _sources;
 
-    public DeckStateCatalog(WindowsVolumeController volumeController)
+    public DeckStateCatalog(WindowsVolumeController volumeController, IEnumerable<IDeckStateSource>? pluginSources = null)
     {
-        IDeckStateSource[] sources =
-        [
+        var sources = new List<IDeckStateSource>
+        {
             new OutputMuteStateSource(volumeController),
             new MicrophoneMuteStateSource(volumeController),
-        ];
+        };
+        if (pluginSources is not null)
+        {
+            sources.AddRange(pluginSources);
+        }
 
         _sources = sources.ToDictionary(source => source.Id, StringComparer.OrdinalIgnoreCase);
         foreach (var source in sources)
