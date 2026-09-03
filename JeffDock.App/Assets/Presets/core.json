@@ -116,6 +116,17 @@
       "name": "Scenes",
       "presets": [
         {
+          "id": "scenes.home",
+          "name": "Home Scene",
+          "description": "Return directly to the Default scene.",
+          "controlTypes": [ "Button", "Encoder" ],
+          "bindings": [ { "trigger": "Press", "actionId": "scene.home" } ],
+          "iconMode": "Static",
+          "iconId": "elgato/general/home--filled",
+          "iconForeground": "#FFFFFF",
+          "iconBackground": "#2563A8"
+        },
+        {
           "id": "scenes.next",
           "name": "Next Scene",
           "description": "Switch to the next scene.",

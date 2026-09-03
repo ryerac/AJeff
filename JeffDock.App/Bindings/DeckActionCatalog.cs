@@ -33,6 +33,7 @@ internal sealed class DeckActionCatalog : IDisposable
             new VolumeStepAction(_volumeController, VolumeStepAction.DownActionId, "Volume Down", -1),
             new SceneCycleAction(bindingStore, SceneCycleAction.NextActionId, "Next Scene", 1),
             new SceneCycleAction(bindingStore, SceneCycleAction.PreviousActionId, "Previous Scene", -1),
+            new HomeSceneAction(bindingStore),
         };
         actions.AddRange(plugins.Actions.Select(action => new PluginActionAdapter(action)));
         _actions = actions;
