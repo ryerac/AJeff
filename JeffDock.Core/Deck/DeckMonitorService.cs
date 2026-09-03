@@ -83,6 +83,11 @@ public sealed class DeckMonitorService : IDisposable
         {
             lock (session.OutputLock)
             {
+                foreach (var packet in profile.BuildClearButtonImages())
+                {
+                    session.Connection.Stream.Write(packet);
+                }
+
                 foreach (var (controlIndex, jpegData) in jpegImages.OrderBy(image => image.Key))
                 {
                     foreach (var packet in profile.BuildButtonImageUpload(controlIndex, jpegData))

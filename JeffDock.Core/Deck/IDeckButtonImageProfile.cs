@@ -10,5 +10,7 @@ public interface IDeckButtonImageProfile
 
     IReadOnlyList<byte[]> BuildButtonImageUpload(int controlIndex, ReadOnlySpan<byte> jpegData);
 
+    IReadOnlyList<byte[]> BuildClearButtonImages();
+
     byte[] BuildBrightnessPacket(int percentage);
 }

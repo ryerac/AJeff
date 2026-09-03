@@ -1,0 +1,9 @@
+﻿{
+    "id":  "elgato",
+    "name":  "Elgato Icons",
+    "version":  "2.5.1",
+    "author":  "Elgato / Corsair Memory Inc.",
+    "license":  "MIT",
+    "source":  "https://github.com/elgatosf/icons",
+    "commit":  "c9fd1bb0a2a986cd2b1098ec09377b0fa17e7f5a"
+}

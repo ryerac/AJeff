@@ -289,7 +289,7 @@ public partial class MainWindow : Window
         }
 
         var dialog = new IconLibraryDialog(_iconLibraryCatalog.Icons) { Owner = this };
-        if (dialog.ShowDialog() != true || dialog.SelectedIcon is not { } icon)
+        if (dialog.ShowDialog() != true || dialog.SelectedImageBytes is not { } imageBytes)
         {
             return;
         }
@@ -297,7 +297,7 @@ public partial class MainWindow : Window
         try
         {
             var scene = _bindingStore.GetActiveScene(device);
-            _iconStore.SaveIcon(device.DeviceId, scene.Id, selectedControl.ControlIndex, icon.ImageBytes);
+            _iconStore.SaveIcon(device.DeviceId, scene.Id, selectedControl.ControlIndex, imageBytes);
             RefreshButtonIcons();
             RefreshBindingEditor();
             QueueIconSync(device);
@@ -391,12 +391,12 @@ public partial class MainWindow : Window
         if (useLibrary)
         {
             var picker = new IconLibraryDialog(_iconLibraryCatalog.Icons) { Owner = this };
-            if (picker.ShowDialog() != true || picker.SelectedIcon is not { } icon)
+            if (picker.ShowDialog() != true || picker.SelectedImageBytes is not { } selectedBytes)
             {
                 return;
             }
 
-            imageBytes = icon.ImageBytes;
+            imageBytes = selectedBytes;
         }
         else
         {

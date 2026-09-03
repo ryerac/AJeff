@@ -125,4 +125,19 @@ public class Akp03eButtonImageProtocolTests
         Assert.Equal("LIG"u8.ToArray(), packet[6..9]);
         Assert.Equal(75, packet[11]);
     }
+
+    [Fact]
+    public void BuildClearButtonImages_UsesCleAndStpCommands()
+    {
+        var packets = Akp03eButtonImageProtocol.BuildClearButtonImages();
+
+        Assert.Equal(2, packets.Count);
+        Assert.All(packets, packet => Assert.Equal(1025, packet.Length));
+        Assert.Equal("CLE"u8.ToArray(), packets[0][6..9]);
+        Assert.Equal(0, packets[0][9]);
+        Assert.Equal(0, packets[0][10]);
+        Assert.Equal(0, packets[0][11]);
+        Assert.Equal(0xFF, packets[0][12]);
+        Assert.Equal("STP"u8.ToArray(), packets[1][6..9]);
+    }
 }

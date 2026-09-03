@@ -2,13 +2,16 @@
 
   <ItemGroup>
     <ProjectReference Include="..\JeffDock.Core\JeffDock.Core.csproj" />
+    <PackageReference Include="Svg.Skia" Version="5.2.3" />
   </ItemGroup>
 
   <ItemGroup>
     <Resource Include="Assets\Icons\Packs\**\*.png" />
     <Resource Include="Assets\Icons\Packs\**\*.jpg" />
     <Resource Include="Assets\Icons\Packs\**\*.jpeg" />
+    <Resource Include="Assets\Icons\Packs\**\*.svg" />
     <Resource Include="Assets\Icons\Packs\**\pack.json" />
+    <Resource Include="Assets\Icons\Packs\**\LICENSE.txt" />
   </ItemGroup>
 
   <PropertyGroup>

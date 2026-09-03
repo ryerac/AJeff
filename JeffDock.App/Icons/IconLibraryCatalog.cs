@@ -13,7 +13,7 @@ internal sealed class IconLibraryCatalog
     private const string ResourcePrefix = "assets/icons/packs/";
     private static readonly HashSet<string> ImageExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".png", ".jpg", ".jpeg",
+        ".png", ".jpg", ".jpeg", ".svg",
     };
 
     public IReadOnlyList<IconLibraryItem> Icons { get; }
@@ -117,14 +117,11 @@ internal sealed class IconLibraryCatalog
 
         try
         {
-            using var stream = new MemoryStream(imageBytes, writable: false);
-            var preview = new BitmapImage();
-            preview.BeginInit();
-            preview.CacheOption = BitmapCacheOption.OnLoad;
-            preview.DecodePixelWidth = 96;
-            preview.StreamSource = stream;
-            preview.EndInit();
-            preview.Freeze();
+            var isVector = Path.GetExtension(resourcePath).Equals(".svg", StringComparison.OrdinalIgnoreCase);
+            var previewBytes = isVector
+                ? SvgIconRenderer.RenderPng(imageBytes, "#FFFFFF", null, size: 72)
+                : imageBytes;
+            var preview = SvgIconRenderer.ToBitmapSource(previewBytes);
 
             return new IconLibraryItem(
                 $"{packId}/{string.Join('/', parts.Skip(1).SkipLast(1)).ToLowerInvariant()}/{fileId.ToLowerInvariant()}",
@@ -133,7 +130,8 @@ internal sealed class IconLibraryCatalog
                 category,
                 ToDisplayName(fileId),
                 imageBytes,
-                preview);
+                preview,
+                isVector);
         }
         catch
         {

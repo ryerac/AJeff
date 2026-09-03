@@ -3,6 +3,8 @@ namespace JeffDock.Core.Akp03e;
 public static class Akp03eButtonImageProtocol
 {
     public const int PacketLength = 1025;
+    // Mirabox v2 firmware exposes a 64x64 framebuffer. The image is rotated by
+    // the app before upload; smaller rasters leave a gap on the physical top/right.
     public const int ImageWidth = 64;
     public const int ImageHeight = 64;
 
@@ -47,6 +49,15 @@ public static class Akp03eButtonImageProtocol
 
         Span<byte> command = stackalloc byte[] { (byte)'L', (byte)'I', (byte)'G', 0, 0, (byte)percentage };
         return BuildCommandPacket(command);
+    }
+
+    public static IReadOnlyList<byte[]> BuildClearButtonImages()
+    {
+        Span<byte> clearCommand = stackalloc byte[]
+        {
+            (byte)'C', (byte)'L', (byte)'E', 0, 0, 0, 0xFF,
+        };
+        return [BuildCommandPacket(clearCommand), BuildCommandPacket("STP"u8)];
     }
 
     private static byte[] BuildAnnouncePacket(int controlIndex, int imageLength)
