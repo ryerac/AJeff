@@ -19,8 +19,8 @@ internal sealed class ToggleMuteAction(WindowsVolumeController volumeController)
     public DeckActionVisualDefinition Visual { get; } = new(
         OutputMuteStateSource.SourceId,
         [
-            new("muted", "Muted", "core/audio/toggle-mute"),
-            new("unmuted", "Not Muted"),
+            new("muted", "Muted", "core/audio/toggle-mute_muted"),
+            new("unmuted", "Not Muted", "core/audio/toggle-mute_unmuted"),
         ]);
 
     public bool Supports(DeckInputEventType triggerEventType)

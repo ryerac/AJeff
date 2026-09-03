@@ -93,6 +93,21 @@ internal sealed class DeckIconStore
         return true;
     }
 
+    public void DeleteAllControlIcons(string deviceId, string sceneId, int buttonIndex)
+    {
+        var staticPath = GetIconPath(deviceId, sceneId, buttonIndex);
+        if (File.Exists(staticPath))
+        {
+            File.Delete(staticPath);
+        }
+
+        var stateDirectory = Path.Combine(GetIconDirectory(deviceId, sceneId), buttonIndex.ToString());
+        if (Directory.Exists(stateDirectory))
+        {
+            Directory.Delete(stateDirectory, recursive: true);
+        }
+    }
+
     public string? FindIconPath(string deviceId, string sceneId, int buttonIndex)
     {
         var path = GetIconPath(deviceId, sceneId, buttonIndex);

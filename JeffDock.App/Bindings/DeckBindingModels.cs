@@ -29,6 +29,11 @@ internal readonly record struct DeckIconBindingKey(
     int ControlIndex
 );
 
+internal sealed record DeckControlBindingUpdate(
+    DeckInputEventType TriggerEventType,
+    string ActionId,
+    IReadOnlyDictionary<string, string>? Parameters = null);
+
 internal sealed record DeckScene(string Id, string Name)
 {
     public const string DefaultId = "default";

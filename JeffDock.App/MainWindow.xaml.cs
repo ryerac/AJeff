@@ -8,18 +8,21 @@ using Microsoft.Win32;
 using JeffDock.App.Bindings;
 using JeffDock.App.Bindings.Core;
 using JeffDock.App.Icons;
+using JeffDock.App.Presets;
 using JeffDock.Core.Deck;
 
 namespace JeffDock.App;
 
 public partial class MainWindow : Window
 {
+    private const string PresetDragFormat = "JeffDock.ControlPreset";
     private readonly DeckMonitorService _monitor;
     private readonly DeckBindingStore _bindingStore;
     private readonly DeckIconStore _iconStore;
     private readonly IconLibraryCatalog _iconLibraryCatalog;
     private readonly DeckActionCatalog _actionCatalog;
     private readonly DeckActionExecutor _actionExecutor;
+    private readonly DeckPresetCatalog _presetCatalog;
     private readonly Dictionary<(DeckControlType ControlType, int ControlIndex), Border> _controlVisuals = new();
     private readonly Dictionary<(DeckControlType ControlType, int ControlIndex), DeckControlLayout> _controlLayouts = new();
     private readonly Dictionary<Border, Brush> _idleBrushes = new();
@@ -42,6 +45,7 @@ public partial class MainWindow : Window
         _actionCatalog = new DeckActionCatalog(_bindingStore);
         _actionCatalog.StateCatalog.StateChanged += OnDeckStateChanged;
         _actionExecutor = new DeckActionExecutor(_actionCatalog);
+        _presetCatalog = new DeckPresetCatalog();
         _monitor = new DeckMonitorService(DeckProfileCatalog.SupportedProfiles, maxLinesPerDevice: 100);
         _monitor.DevicesChanged += OnDevicesChanged;
         _monitor.DeviceLogChanged += OnDeviceLogChanged;
@@ -50,6 +54,7 @@ public partial class MainWindow : Window
         SystemEvents.PowerModeChanged += OnPowerModeChanged;
         Application.Current.SessionEnding += OnSessionEnding;
 
+        BuildPresetPalette();
         RefreshUi();
     }
 
@@ -657,7 +662,11 @@ public partial class MainWindow : Window
         {
             var border = BuildControlVisual(control);
             border.Tag = control;
+            border.AllowDrop = true;
             border.MouseLeftButtonUp += ControlBorder_OnMouseLeftButtonUp;
+            border.DragOver += ControlBorder_OnDragOver;
+            border.DragLeave += ControlBorder_OnDragLeave;
+            border.Drop += ControlBorder_OnDrop;
             Canvas.SetLeft(border, control.X);
             Canvas.SetTop(border, control.Y);
             FaceplateCanvas.Children.Add(border);
@@ -670,6 +679,227 @@ public partial class MainWindow : Window
 
         _renderedLayout = layout;
         RefreshSelectionVisuals();
+    }
+
+    private void BuildPresetPalette()
+    {
+        PresetPalettePanel.Children.Clear();
+        foreach (var section in _presetCatalog.Sections)
+        {
+            var contents = new StackPanel();
+            foreach (var preset in section.Presets)
+            {
+                var item = new Border
+                {
+                    Tag = preset,
+                    Margin = new Thickness(0, 0, 0, 6),
+                    Padding = new Thickness(9, 7, 9, 7),
+                    CornerRadius = new CornerRadius(5),
+                    BorderThickness = new Thickness(1),
+                    BorderBrush = CreateBrush("#D0D0D0"),
+                    Background = CreateBrush("#FAFAFA"),
+                    Cursor = Cursors.Hand,
+                    ToolTip = preset.Description,
+                    Child = BuildPresetPaletteItem(preset),
+                };
+                item.PreviewMouseMove += PresetItem_OnPreviewMouseMove;
+                contents.Children.Add(item);
+            }
+
+            PresetPalettePanel.Children.Add(new Expander
+            {
+                Header = section.Name,
+                IsExpanded = true,
+                Margin = new Thickness(0, 0, 0, 8),
+                Content = contents,
+            });
+        }
+    }
+
+    private FrameworkElement BuildPresetPaletteItem(DeckControlPreset preset)
+    {
+        var panel = new DockPanel();
+        if (ResolvePresetIconBytes(preset) is { } iconBytes)
+        {
+            panel.Children.Add(new Border
+            {
+                Width = 34,
+                Height = 34,
+                Margin = new Thickness(0, 0, 9, 0),
+                CornerRadius = new CornerRadius(4),
+                Child = BuildPreviewImage(iconBytes),
+            });
+        }
+
+        panel.Children.Add(new TextBlock
+        {
+            Text = preset.Name,
+            TextWrapping = TextWrapping.Wrap,
+            FontWeight = FontWeights.SemiBold,
+            VerticalAlignment = VerticalAlignment.Center,
+        });
+        return panel;
+    }
+
+    private void PresetItem_OnPreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (e.LeftButton == MouseButtonState.Pressed && sender is Border { Tag: DeckControlPreset preset } item)
+        {
+            DragDrop.DoDragDrop(item, new DataObject(PresetDragFormat, preset), DragDropEffects.Copy);
+        }
+    }
+
+    private void ControlBorder_OnDragOver(object sender, DragEventArgs e)
+    {
+        if (sender is not Border { Tag: DeckControlLayout control } border
+            || !TryGetDraggedPreset(e.Data, out var preset)
+            || !CanApplyPreset(preset, control, out _))
+        {
+            e.Effects = DragDropEffects.None;
+            e.Handled = true;
+            return;
+        }
+
+        e.Effects = DragDropEffects.Copy;
+        border.BorderBrush = Brushes.LimeGreen;
+        border.BorderThickness = new Thickness(control.ControlType == DeckControlType.Encoder ? 4 : 3);
+        e.Handled = true;
+    }
+
+    private void ControlBorder_OnDragLeave(object sender, DragEventArgs e)
+    {
+        RefreshSelectionVisuals();
+    }
+
+    private void ControlBorder_OnDrop(object sender, DragEventArgs e)
+    {
+        RefreshSelectionVisuals();
+        if (sender is not Border { Tag: DeckControlLayout control }
+            || !TryGetDraggedPreset(e.Data, out var preset)
+            || !CanApplyPreset(preset, control, out var updates)
+            || GetSelectedDevice() is not { } device)
+        {
+            return;
+        }
+
+        var triggers = control.ControlType == DeckControlType.Button
+            ? new[] { DeckInputEventType.ButtonPress }
+            : new[] { DeckInputEventType.EncoderTurn, DeckInputEventType.EncoderPress };
+        var replacesExisting = triggers.Any(trigger =>
+            !string.Equals(
+                _bindingStore.GetActionId(device, control.ControlType, control.ControlIndex, trigger),
+                NoAction.ActionId,
+                StringComparison.OrdinalIgnoreCase));
+        if (replacesExisting
+            && MessageBox.Show(
+                this,
+                $"Replace the existing configuration for {DescribeControl(control)} with '{preset.Name}'?",
+                "Apply Preset",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question) != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        DeckIconMode? iconMode = null;
+        if (control.CanHaveIcon && Enum.TryParse<DeckIconMode>(preset.IconMode, true, out var parsedMode))
+        {
+            iconMode = parsedMode;
+        }
+
+        _bindingStore.ApplyControlPreset(device, control.ControlType, control.ControlIndex, updates, iconMode);
+        if (control.CanHaveIcon && iconMode == DeckIconMode.Static && ResolvePresetIconBytes(preset) is { } iconBytes)
+        {
+            var scene = _bindingStore.GetActiveScene(device);
+            _iconStore.SaveIcon(device.DeviceId, scene.Id, control.ControlIndex, iconBytes);
+        }
+        _selectedControl = (control.ControlType, control.ControlIndex);
+        RefreshSelectionVisuals();
+        RefreshButtonIcons();
+        RefreshBindingEditor();
+        QueueIconSync(device);
+    }
+
+    private byte[]? ResolvePresetIconBytes(DeckControlPreset preset)
+    {
+        var iconId = preset.IconId;
+        if (iconId is null)
+        {
+            iconId = preset.Bindings
+                .Select(binding => _actionCatalog.TryGetAction(binding.ActionId, out var action) ? action.Visual : null)
+                .Where(visual => visual is not null)
+                .SelectMany(visual => visual!.States)
+                .Select(state => state.DefaultIconId)
+                .FirstOrDefault(candidate => candidate is not null);
+        }
+
+        if (iconId is null || _iconLibraryCatalog.FindIcon(iconId) is not { } icon)
+        {
+            return null;
+        }
+
+        try
+        {
+            return preset.IconId is null
+                ? icon.ImageBytes
+                : icon.GetRenderedBytes(
+                    preset.IconForeground ?? "#FFFFFF",
+                    preset.IconBackground ?? "#000000");
+        }
+        catch (Exception exception) when (exception is FormatException or InvalidDataException)
+        {
+            return null;
+        }
+    }
+
+    private static Image BuildPreviewImage(byte[] imageBytes)
+    {
+        var bitmap = new System.Windows.Media.Imaging.BitmapImage();
+        bitmap.BeginInit();
+        bitmap.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+        using var stream = new MemoryStream(imageBytes, writable: false);
+        bitmap.StreamSource = stream;
+        bitmap.EndInit();
+        bitmap.Freeze();
+        return new Image { Source = bitmap, Stretch = Stretch.UniformToFill };
+    }
+
+    private bool CanApplyPreset(
+        DeckControlPreset preset,
+        DeckControlLayout control,
+        out IReadOnlyList<DeckControlBindingUpdate> updates)
+    {
+        var result = new List<DeckControlBindingUpdate>();
+        if (!preset.Supports(control.ControlType))
+        {
+            updates = result;
+            return false;
+        }
+
+        foreach (var binding in preset.Bindings)
+        {
+            var trigger = preset.ResolveTrigger(control.ControlType, binding);
+            if (trigger is null
+                || !_actionCatalog.TryGetAction(binding.ActionId, out var action)
+                || !action.Supports(trigger.Value))
+            {
+                updates = result;
+                return false;
+            }
+
+            result.Add(new DeckControlBindingUpdate(trigger.Value, binding.ActionId, binding.Parameters));
+        }
+
+        updates = result;
+        return result.Count > 0;
+    }
+
+    private static bool TryGetDraggedPreset(IDataObject data, out DeckControlPreset preset)
+    {
+        preset = data.GetDataPresent(PresetDragFormat)
+            ? data.GetData(PresetDragFormat) as DeckControlPreset ?? null!
+            : null!;
+        return preset is not null;
     }
 
     private void OnInputEventReceived(MonitoredDeckDevice device, DeckInputEvent evt)
@@ -710,6 +940,37 @@ public partial class MainWindow : Window
         RefreshBindingEditor();
     }
 
+    private void ResetControlButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (GetSelectedDevice() is not { } device
+            || _selectedControl is not { } selectedControl
+            || !_controlLayouts.TryGetValue(selectedControl, out var layout))
+        {
+            return;
+        }
+
+        if (MessageBox.Show(
+                this,
+                $"Remove all actions and icons from {DescribeControl(layout)} in the current scene?",
+                "Reset Control",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning) != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        _bindingStore.ResetControl(device, selectedControl.ControlType, selectedControl.ControlIndex);
+        if (selectedControl.ControlType == DeckControlType.Button)
+        {
+            var scene = _bindingStore.GetActiveScene(device);
+            _iconStore.DeleteAllControlIcons(device.DeviceId, scene.Id, selectedControl.ControlIndex);
+        }
+
+        RefreshButtonIcons();
+        RefreshBindingEditor();
+        QueueIconSync(device);
+    }
+
     private void EnsureSelectedControl(DeckLayoutDefinition layout)
     {
         if (_selectedControl is { } selectedControl && layout.Controls.Any(control => control.ControlType == selectedControl.ControlType && control.ControlIndex == selectedControl.ControlIndex))
@@ -741,6 +1002,7 @@ public partial class MainWindow : Window
             if (device is null || _selectedControl is not { } selectedControl || !_controlLayouts.TryGetValue(selectedControl, out var layout))
             {
                 SelectedControlText.Text = "Selected Control: none";
+                ResetControlButton.IsEnabled = false;
                 IconBindingRow.Visibility = Visibility.Collapsed;
                 RemoveIconButton.IsEnabled = false;
                 IconModeComboBox.ItemsSource = null;
@@ -756,6 +1018,7 @@ public partial class MainWindow : Window
             }
 
             SelectedControlText.Text = $"Selected Control: {DescribeControl(layout)}";
+            ResetControlButton.IsEnabled = true;
             IconBindingRow.Visibility = layout.CanHaveIcon ? Visibility.Visible : Visibility.Collapsed;
             if (layout.CanHaveIcon)
             {

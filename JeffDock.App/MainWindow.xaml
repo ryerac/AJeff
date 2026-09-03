@@ -4,12 +4,14 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="JeffDock Monitor" Height="560" Width="980" MinHeight="500" MinWidth="860">
+        Title="JeffDock Monitor" Height="620" Width="1280" MinHeight="540" MinWidth="1080">
     <Grid Margin="12">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="320" />
             <ColumnDefinition Width="12" />
             <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="12" />
+            <ColumnDefinition Width="250" />
         </Grid.ColumnDefinitions>
 
         <Border Grid.Column="0" CornerRadius="8" Padding="12" BorderThickness="1" BorderBrush="#DDD">
@@ -64,11 +66,19 @@
                                     Click="DeleteSceneButton_OnClick" />
                         </StackPanel>
 
-                        <TextBlock x:Name="SelectedControlText"
-                                   Text="Selected Control: none"
-                                   FontSize="14"
-                                   FontWeight="SemiBold"
-                                   Margin="0,0,0,8" />
+                        <DockPanel Margin="0,0,0,8">
+                            <Button x:Name="ResetControlButton"
+                                    DockPanel.Dock="Right"
+                                    Content="Reset Control"
+                                    Padding="10,4"
+                                    IsEnabled="False"
+                                    Click="ResetControlButton_OnClick" />
+                            <TextBlock x:Name="SelectedControlText"
+                                       Text="Selected Control: none"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center" />
+                        </DockPanel>
 
                         <StackPanel x:Name="IconBindingRow" Margin="0,0,0,8" Visibility="Collapsed">
                             <StackPanel Orientation="Horizontal">
@@ -145,6 +155,20 @@
                          FontFamily="Consolas"
                          FontSize="12"
                          HorizontalContentAlignment="Stretch" />
+            </DockPanel>
+        </Border>
+
+        <Border Grid.Column="4" CornerRadius="8" Padding="12" BorderThickness="1" BorderBrush="#DDD">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="Presets" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,5" />
+                <TextBlock DockPanel.Dock="Top"
+                           Text="Drag a preset onto a compatible control."
+                           TextWrapping="Wrap"
+                           Foreground="#666"
+                           Margin="0,0,0,10" />
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel x:Name="PresetPalettePanel" />
+                </ScrollViewer>
             </DockPanel>
         </Border>
     </Grid>

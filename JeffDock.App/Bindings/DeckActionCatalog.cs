@@ -24,6 +24,7 @@ internal sealed class DeckActionCatalog : IDisposable
             new ToggleMuteAction(_volumeController),
             new ToggleMicrophoneMuteAction(_volumeController),
             new KeyboardShortcutAction(),
+            new LockWorkstationAction(),
             new VolumeStepAction(_volumeController, VolumeStepAction.UpActionId, "Volume Up", 1),
             new VolumeStepAction(_volumeController, VolumeStepAction.DownActionId, "Volume Down", -1),
             new SceneCycleAction(bindingStore, SceneCycleAction.NextActionId, "Next Scene", 1),
@@ -58,6 +59,11 @@ internal sealed class DeckActionCatalog : IDisposable
     public IDeckAction GetAction(string actionId)
     {
         return _actionsById.GetValueOrDefault(actionId) ?? _actionsById[NoAction.ActionId];
+    }
+
+    public bool TryGetAction(string actionId, out IDeckAction action)
+    {
+        return _actionsById.TryGetValue(actionId, out action!);
     }
 
     public void Dispose()

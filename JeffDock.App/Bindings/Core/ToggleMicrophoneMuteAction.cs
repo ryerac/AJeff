@@ -21,7 +21,7 @@ internal sealed class ToggleMicrophoneMuteAction(WindowsVolumeController volumeC
         MicrophoneMuteStateSource.SourceId,
         [
             new("muted", "Muted", "core/audio/toggle-microphone-mute"),
-            new("unmuted", "Not Muted"),
+            new("unmuted", "Not Muted", "core/audio/toggle-microphone-unmute"),
         ]);
 
     public bool Supports(DeckInputEventType triggerEventType)

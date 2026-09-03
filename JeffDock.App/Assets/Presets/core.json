@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "sections": [
+    {
+      "id": "audio",
+      "name": "Audio",
+      "presets": [
+        {
+          "id": "audio.toggle-microphone",
+          "name": "Toggle Microphone",
+          "description": "Mute or unmute the default recording device.",
+          "controlTypes": [ "Button", "Encoder" ],
+          "bindings": [ { "trigger": "Press", "actionId": "core.audio.toggle-microphone-mute" } ],
+          "iconMode": "Dynamic"
+        },
+        {
+          "id": "audio.toggle-output-mute",
+          "name": "Toggle Speaker Mute",
+          "description": "Mute or unmute the default playback device.",
+          "controlTypes": [ "Button", "Encoder" ],
+          "bindings": [ { "trigger": "Press", "actionId": "core.audio.toggle-mute" } ],
+          "iconMode": "Dynamic"
+        },
+        {
+          "id": "audio.volume-knob",
+          "name": "Volume Knob",
+          "description": "Turn to adjust volume and press to toggle mute.",
+          "controlTypes": [ "Encoder" ],
+          "bindings": [
+            { "trigger": "Turn", "actionId": "core.audio.volume-adjust" },
+            { "trigger": "Press", "actionId": "core.audio.toggle-mute" }
+          ]
+        },
+        {
+          "id": "audio.volume-up",
+          "name": "Volume Up",
+          "description": "Increase playback volume one step.",
+          "controlTypes": [ "Button", "Encoder" ],
+          "bindings": [ { "trigger": "Press", "actionId": "core.audio.volume-up" } ],
+          "iconMode": "Static",
+          "iconId": "elgato/general/volume2",
+          "iconForeground": "#FFFFFF",
+          "iconBackground": "#16803A"
+        },
+        {
+          "id": "audio.volume-down",
+          "name": "Volume Down",
+          "description": "Decrease playback volume one step.",
+          "controlTypes": [ "Button", "Encoder" ],
+          "bindings": [ { "trigger": "Press", "actionId": "core.audio.volume-down" } ],
+          "iconMode": "Static",
+          "iconId": "elgato/general/volume0",
+          "iconForeground": "#FFFFFF",
+          "iconBackground": "#C62828"
+        }
+      ]
+    },
+    {
+      "id": "machine",
+      "name": "Machine",
+      "presets": [
+        {
+          "id": "machine.lock",
+          "name": "Lock Computer",
+          "description": "Lock the current Windows session.",
+          "controlTypes": [ "Button", "Encoder" ],
+          "bindings": [ { "trigger": "Press", "actionId": "core.machine.lock" } ],
+          "iconMode": "Static",
+          "iconId": "elgato/general/lock",
+          "iconForeground": "#FFFFFF",
+          "iconBackground": "#354052"
+        }
+      ]
+    },
+    {
+      "id": "scenes",
+      "name": "Scenes",
+      "presets": [
+        {
+          "id": "scenes.next",
+          "name": "Next Scene",
+          "description": "Switch to the next scene.",
+          "controlTypes": [ "Button", "Encoder" ],
+          "bindings": [ { "trigger": "Press", "actionId": "scene.next" } ],
+          "iconMode": "Static",
+          "iconId": "elgato/general/arrow-right",
+          "iconForeground": "#FFFFFF",
+          "iconBackground": "#4A3A8A"
+        },
+        {
+          "id": "scenes.previous",
+          "name": "Previous Scene",
+          "description": "Switch to the previous scene.",
+          "controlTypes": [ "Button", "Encoder" ],
+          "bindings": [ { "trigger": "Press", "actionId": "scene.previous" } ],
+          "iconMode": "Static",
+          "iconId": "elgato/general/arrow-left",
+          "iconForeground": "#FFFFFF",
+          "iconBackground": "#4A3A8A"
+        }
+      ]
+    }
+  ]
+}

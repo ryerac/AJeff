@@ -232,6 +232,79 @@ internal sealed class DeckBindingStore
         }
     }
 
+    public void ApplyControlPreset(
+        MonitoredDeckDevice device,
+        DeckControlType controlType,
+        int controlIndex,
+        IReadOnlyList<DeckControlBindingUpdate> updates,
+        DeckIconMode? iconMode)
+    {
+        lock (_sync)
+        {
+            var sceneId = GetActiveSceneId(device.DeviceId);
+            var supportedTriggers = controlType == DeckControlType.Button
+                ? new[] { DeckInputEventType.ButtonPress }
+                : new[] { DeckInputEventType.EncoderTurn, DeckInputEventType.EncoderPress };
+
+            foreach (var trigger in supportedTriggers)
+            {
+                var key = new DeckBindingKey(device.DeviceId, sceneId, controlType, controlIndex, trigger);
+                _bindings[key] = NoAction.ActionId;
+                _actionParameters.Remove(key);
+            }
+
+            foreach (var update in updates)
+            {
+                var key = new DeckBindingKey(device.DeviceId, sceneId, controlType, controlIndex, update.TriggerEventType);
+                _bindings[key] = update.ActionId;
+                if (update.Parameters is { Count: > 0 })
+                {
+                    _actionParameters[key] = new Dictionary<string, string>(update.Parameters, StringComparer.OrdinalIgnoreCase);
+                }
+            }
+
+            if (controlType == DeckControlType.Button && iconMode is { } mode)
+            {
+                var iconKey = new DeckIconBindingKey(device.DeviceId, sceneId, controlIndex);
+                if (mode == DeckIconMode.Static)
+                {
+                    _iconBindings.Remove(iconKey);
+                }
+                else
+                {
+                    _iconBindings[iconKey] = mode;
+                }
+            }
+
+            Save();
+        }
+    }
+
+    public void ResetControl(MonitoredDeckDevice device, DeckControlType controlType, int controlIndex)
+    {
+        lock (_sync)
+        {
+            var sceneId = GetActiveSceneId(device.DeviceId);
+            var triggers = controlType == DeckControlType.Button
+                ? new[] { DeckInputEventType.ButtonPress }
+                : new[] { DeckInputEventType.EncoderTurn, DeckInputEventType.EncoderPress };
+
+            foreach (var trigger in triggers)
+            {
+                var key = new DeckBindingKey(device.DeviceId, sceneId, controlType, controlIndex, trigger);
+                _bindings[key] = NoAction.ActionId;
+                _actionParameters.Remove(key);
+            }
+
+            if (controlType == DeckControlType.Button)
+            {
+                _iconBindings.Remove(new DeckIconBindingKey(device.DeviceId, sceneId, controlIndex));
+            }
+
+            Save();
+        }
+    }
+
     public IReadOnlyDictionary<string, string> GetActionParameters(
         MonitoredDeckDevice device,
         DeckControlType controlType,

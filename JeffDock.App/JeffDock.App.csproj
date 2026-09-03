@@ -17,6 +17,7 @@
     <Resource Include="Assets\Icons\Packs\**\*.svg" />
     <Resource Include="Assets\Icons\Packs\**\pack.json" />
     <Resource Include="Assets\Icons\Packs\**\LICENSE.txt" />
+    <EmbeddedResource Include="Assets\Presets\*.json" />
   </ItemGroup>
 
   <PropertyGroup>
