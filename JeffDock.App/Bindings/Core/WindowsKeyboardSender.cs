@@ -60,7 +60,8 @@ internal static class WindowsKeyboardSender
             or Key.PageUp or Key.PageDown
             or Key.Left or Key.Right or Key.Up or Key.Down
             or Key.NumLock or Key.Divide or Key.RightAlt or Key.RightCtrl
-            or Key.LWin or Key.RWin or Key.Apps;
+            or Key.LWin or Key.RWin or Key.Apps
+            or Key.MediaPlayPause or Key.MediaNextTrack or Key.MediaPreviousTrack or Key.MediaStop;
     }
 
     [DllImport("user32.dll", SetLastError = true)]

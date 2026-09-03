@@ -56,6 +56,45 @@
       ]
     },
     {
+      "id": "media",
+      "name": "Media",
+      "presets": [
+        {
+          "id": "media.play-pause",
+          "name": "Play / Pause",
+          "description": "Toggle playback in the active Windows media session.",
+          "controlTypes": [ "Button", "Encoder" ],
+          "bindings": [ { "trigger": "Press", "actionId": "core.media.play-pause" } ],
+          "iconMode": "Static",
+          "iconId": "elgato/general/play-pause",
+          "iconForeground": "#FFFFFF",
+          "iconBackground": "#2563A6"
+        },
+        {
+          "id": "media.next-track",
+          "name": "Skip Forward",
+          "description": "Skip to the next track in the active Windows media session.",
+          "controlTypes": [ "Button", "Encoder" ],
+          "bindings": [ { "trigger": "Press", "actionId": "core.media.next-track" } ],
+          "iconMode": "Static",
+          "iconId": "elgato/general/skip-forward",
+          "iconForeground": "#FFFFFF",
+          "iconBackground": "#2563A6"
+        },
+        {
+          "id": "media.previous-track",
+          "name": "Skip Back",
+          "description": "Return to the previous track in the active Windows media session.",
+          "controlTypes": [ "Button", "Encoder" ],
+          "bindings": [ { "trigger": "Press", "actionId": "core.media.previous-track" } ],
+          "iconMode": "Static",
+          "iconId": "elgato/general/skip-back",
+          "iconForeground": "#FFFFFF",
+          "iconBackground": "#2563A6"
+        }
+      ]
+    },
+    {
       "id": "machine",
       "name": "Machine",
       "presets": [
