@@ -305,6 +305,61 @@ internal sealed class DeckBindingStore
         }
     }
 
+    public void MoveControl(MonitoredDeckDevice device, DeckControlType controlType, int sourceIndex, int targetIndex)
+    {
+        if (sourceIndex == targetIndex)
+        {
+            return;
+        }
+
+        lock (_sync)
+        {
+            var sceneId = GetActiveSceneId(device.DeviceId);
+            var triggers = controlType == DeckControlType.Button
+                ? new[] { DeckInputEventType.ButtonPress }
+                : new[] { DeckInputEventType.EncoderTurn, DeckInputEventType.EncoderPress };
+
+            foreach (var trigger in triggers)
+            {
+                var sourceKey = new DeckBindingKey(device.DeviceId, sceneId, controlType, sourceIndex, trigger);
+                var targetKey = new DeckBindingKey(device.DeviceId, sceneId, controlType, targetIndex, trigger);
+                _bindings[targetKey] = _bindings.TryGetValue(sourceKey, out var actionId)
+                    ? actionId
+                    : GetDefaultActionId(device.ProfileName, controlType, sourceIndex, trigger);
+
+                if (_actionParameters.TryGetValue(sourceKey, out var parameters))
+                {
+                    _actionParameters[targetKey] = new Dictionary<string, string>(parameters, StringComparer.OrdinalIgnoreCase);
+                }
+                else
+                {
+                    _actionParameters.Remove(targetKey);
+                }
+
+                _bindings[sourceKey] = NoAction.ActionId;
+                _actionParameters.Remove(sourceKey);
+            }
+
+            if (controlType == DeckControlType.Button)
+            {
+                var sourceIconKey = new DeckIconBindingKey(device.DeviceId, sceneId, sourceIndex);
+                var targetIconKey = new DeckIconBindingKey(device.DeviceId, sceneId, targetIndex);
+                if (_iconBindings.TryGetValue(sourceIconKey, out var iconMode))
+                {
+                    _iconBindings[targetIconKey] = iconMode;
+                }
+                else
+                {
+                    _iconBindings.Remove(targetIconKey);
+                }
+
+                _iconBindings.Remove(sourceIconKey);
+            }
+
+            Save();
+        }
+    }
+
     public IReadOnlyDictionary<string, string> GetActionParameters(
         MonitoredDeckDevice device,
         DeckControlType controlType,

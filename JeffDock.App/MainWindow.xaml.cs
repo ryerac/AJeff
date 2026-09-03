@@ -18,6 +18,7 @@ namespace JeffDock.App;
 public partial class MainWindow : Window
 {
     private const string PresetDragFormat = "JeffDock.ControlPreset";
+    private const string ControlDragFormat = "JeffDock.Control";
     private readonly DeckMonitorService _monitor;
     private readonly DeckBindingStore _bindingStore;
     private readonly DeckIconStore _iconStore;
@@ -37,6 +38,8 @@ public partial class MainWindow : Window
     private bool _isUpdatingBindingEditor;
     private bool _isUpdatingSceneEditor;
     private int _decksSleeping;
+    private Point? _controlDragStart;
+    private DeckControlLayout? _controlDragSource;
 
     public MainWindow()
     {
@@ -674,6 +677,8 @@ public partial class MainWindow : Window
             var border = BuildControlVisual(control);
             border.Tag = control;
             border.AllowDrop = true;
+            border.PreviewMouseLeftButtonDown += ControlBorder_OnPreviewMouseLeftButtonDown;
+            border.PreviewMouseMove += ControlBorder_OnPreviewMouseMove;
             border.MouseLeftButtonUp += ControlBorder_OnMouseLeftButtonUp;
             border.DragOver += ControlBorder_OnDragOver;
             border.DragLeave += ControlBorder_OnDragLeave;
@@ -762,6 +767,23 @@ public partial class MainWindow : Window
 
     private void ControlBorder_OnDragOver(object sender, DragEventArgs e)
     {
+        if (sender is Border { Tag: DeckControlLayout moveTarget } moveBorder
+            && TryGetDraggedControl(e.Data, out var moveSource))
+        {
+            var canMove = moveSource.ControlType == DeckControlType.Button
+                          && moveTarget.ControlType == DeckControlType.Button
+                          && moveSource.ControlIndex != moveTarget.ControlIndex;
+            e.Effects = canMove ? DragDropEffects.Move : DragDropEffects.None;
+            if (canMove)
+            {
+                moveBorder.BorderBrush = Brushes.LimeGreen;
+                moveBorder.BorderThickness = new Thickness(3);
+            }
+
+            e.Handled = true;
+            return;
+        }
+
         if (sender is not Border { Tag: DeckControlLayout control } border
             || !TryGetDraggedPreset(e.Data, out var preset)
             || !CanApplyPreset(preset, control, out _))
@@ -785,6 +807,14 @@ public partial class MainWindow : Window
     private void ControlBorder_OnDrop(object sender, DragEventArgs e)
     {
         RefreshSelectionVisuals();
+        if (sender is Border { Tag: DeckControlLayout moveTarget }
+            && TryGetDraggedControl(e.Data, out var moveSource))
+        {
+            MoveButtonConfiguration(moveSource, moveTarget);
+            e.Handled = true;
+            return;
+        }
+
         if (sender is not Border { Tag: DeckControlLayout control }
             || !TryGetDraggedPreset(e.Data, out var preset)
             || !CanApplyPreset(preset, control, out var updates)
@@ -825,6 +855,72 @@ public partial class MainWindow : Window
             _iconStore.SaveIcon(device.DeviceId, scene.Id, control.ControlIndex, iconBytes);
         }
         _selectedControl = (control.ControlType, control.ControlIndex);
+        RefreshSelectionVisuals();
+        RefreshButtonIcons();
+        RefreshBindingEditor();
+        QueueIconSync(device);
+    }
+
+    private void ControlBorder_OnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is Border { Tag: DeckControlLayout control })
+        {
+            _controlDragStart = e.GetPosition(this);
+            _controlDragSource = control;
+        }
+    }
+
+    private void ControlBorder_OnPreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (e.LeftButton != MouseButtonState.Pressed
+            || _controlDragStart is not { } start
+            || _controlDragSource is not { ControlType: DeckControlType.Button } source
+            || sender is not Border border)
+        {
+            return;
+        }
+
+        var current = e.GetPosition(this);
+        if (Math.Abs(current.X - start.X) < SystemParameters.MinimumHorizontalDragDistance
+            && Math.Abs(current.Y - start.Y) < SystemParameters.MinimumVerticalDragDistance)
+        {
+            return;
+        }
+
+        _controlDragStart = null;
+        _controlDragSource = null;
+        DragDrop.DoDragDrop(border, new DataObject(ControlDragFormat, source), DragDropEffects.Move);
+    }
+
+    private void MoveButtonConfiguration(DeckControlLayout source, DeckControlLayout target)
+    {
+        if (source.ControlType != DeckControlType.Button
+            || target.ControlType != DeckControlType.Button
+            || source.ControlIndex == target.ControlIndex
+            || GetSelectedDevice() is not { } device)
+        {
+            return;
+        }
+
+        var targetHasConfiguration = !string.Equals(
+            _bindingStore.GetActionId(device, DeckControlType.Button, target.ControlIndex, DeckInputEventType.ButtonPress),
+            NoAction.ActionId,
+            StringComparison.OrdinalIgnoreCase);
+        if (targetHasConfiguration
+            && MessageBox.Show(
+                this,
+                $"Replace the existing configuration for {DescribeControl(target)} with {DescribeControl(source)}?",
+                "Move Button",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question) != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        var scene = _bindingStore.GetActiveScene(device);
+        _bindingStore.MoveControl(device, DeckControlType.Button, source.ControlIndex, target.ControlIndex);
+        _iconStore.MoveAllControlIcons(device.DeviceId, scene.Id, source.ControlIndex, target.ControlIndex);
+        _selectedControl = (DeckControlType.Button, target.ControlIndex);
         RefreshSelectionVisuals();
         RefreshButtonIcons();
         RefreshBindingEditor();
@@ -911,6 +1007,14 @@ public partial class MainWindow : Window
             ? data.GetData(PresetDragFormat) as DeckControlPreset ?? null!
             : null!;
         return preset is not null;
+    }
+
+    private static bool TryGetDraggedControl(IDataObject data, out DeckControlLayout control)
+    {
+        control = data.GetDataPresent(ControlDragFormat)
+            ? data.GetData(ControlDragFormat) as DeckControlLayout ?? null!
+            : null!;
+        return control is not null;
     }
 
     private void OnInputEventReceived(MonitoredDeckDevice device, DeckInputEvent evt)

@@ -108,6 +108,33 @@ internal sealed class DeckIconStore
         }
     }
 
+    public void MoveAllControlIcons(string deviceId, string sceneId, int sourceButtonIndex, int targetButtonIndex)
+    {
+        if (sourceButtonIndex == targetButtonIndex)
+        {
+            return;
+        }
+
+        DeleteAllControlIcons(deviceId, sceneId, targetButtonIndex);
+
+        var sourceStaticPath = GetIconPath(deviceId, sceneId, sourceButtonIndex);
+        var targetStaticPath = GetIconPath(deviceId, sceneId, targetButtonIndex);
+        if (File.Exists(sourceStaticPath))
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(targetStaticPath)!);
+            File.Move(sourceStaticPath, targetStaticPath);
+        }
+
+        var iconDirectory = GetIconDirectory(deviceId, sceneId);
+        var sourceStateDirectory = Path.Combine(iconDirectory, sourceButtonIndex.ToString());
+        var targetStateDirectory = Path.Combine(iconDirectory, targetButtonIndex.ToString());
+        if (Directory.Exists(sourceStateDirectory))
+        {
+            Directory.CreateDirectory(iconDirectory);
+            Directory.Move(sourceStateDirectory, targetStateDirectory);
+        }
+    }
+
     public string? FindIconPath(string deviceId, string sceneId, int buttonIndex)
     {
         var path = GetIconPath(deviceId, sceneId, buttonIndex);
