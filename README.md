@@ -1,5 +1,7 @@
 # AJeff
 
+[![CI](https://github.com/ryerac/AJeff/actions/workflows/ci.yml/badge.svg)](https://github.com/ryerac/AJeff/actions/workflows/ci.yml)
+
 AJeff is a community-built Windows desktop app for configuring AJAZZ macro pads
 without relying on the vendor application.
 
@@ -71,6 +73,17 @@ The resulting `AJeff.exe` is written beneath
 runtime and all official plugins, so it can run without an installer or a
 separate .NET installation. Optional third-party plugins can still be placed in
 `%LOCALAPPDATA%\JeffDock\Plugins`.
+
+Tagged releases are built and published automatically by GitHub Actions. To
+create one after merging the release commit into `main`:
+
+```powershell
+git tag -a v0.1.0 -m "AJeff v0.1.0"
+git push origin v0.1.0
+```
+
+Tags must use a semantic version such as `v1.2.3` or `v1.2.3-beta.1`. The
+release includes `AJeff.exe`, generated release notes, and a SHA-256 checksum.
 
 ## Contributing
 
