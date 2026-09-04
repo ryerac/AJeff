@@ -1,8 +1,10 @@
 using System.Globalization;
+using System.IO;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using JeffDock.App.Plugins;
+using JeffDock.App.Settings;
 using JeffDock.PluginContracts;
 
 namespace JeffDock.App;
@@ -10,6 +12,7 @@ namespace JeffDock.App;
 public partial class PluginSettingsWindow : Window
 {
     private readonly JeffDockPluginLoader _loader;
+    private readonly ApplicationSettingsStore _applicationSettings = new();
     private readonly Dictionary<string, Control> _editors = new(StringComparer.OrdinalIgnoreCase);
     private LoadedPlugin? _selectedPlugin;
     private PluginSettingsStore? _settings;
@@ -18,6 +21,9 @@ public partial class PluginSettingsWindow : Window
     {
         InitializeComponent();
         _loader = loader;
+        StartWithWindowsCheckBox.IsChecked = _applicationSettings.StartWithWindows;
+        StartMinimizedCheckBox.IsChecked = _applicationSettings.StartMinimized;
+        UpdateStartMinimizedAvailability();
         PluginList.ItemsSource = loader.Plugins;
         DiagnosticsText.Text = string.Join(Environment.NewLine, loader.Diagnostics);
         PluginList.SelectedIndex = loader.Plugins.Count > 0 ? 0 : -1;
@@ -25,6 +31,35 @@ public partial class PluginSettingsWindow : Window
         {
             PluginTitle.Text = "No plugins loaded";
             SaveButton.IsEnabled = EditJsonButton.IsEnabled = false;
+        }
+    }
+
+    private void StartWithWindowsCheckBox_OnChanged(object sender, RoutedEventArgs e) =>
+        UpdateStartMinimizedAvailability();
+
+    private void UpdateStartMinimizedAvailability()
+    {
+        if (StartMinimizedCheckBox is not null)
+        {
+            StartMinimizedCheckBox.IsEnabled = StartWithWindowsCheckBox?.IsChecked == true;
+        }
+    }
+
+    private void SaveApplicationSettingsButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            _applicationSettings.Save(
+                StartWithWindowsCheckBox.IsChecked == true,
+                StartMinimizedCheckBox.IsChecked == true);
+            MessageBox.Show(this, "Application settings saved.", "AJeff", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception exception) when (exception is IOException
+                                          or UnauthorizedAccessException
+                                          or InvalidOperationException
+                                          or System.Security.SecurityException)
+        {
+            MessageBox.Show(this, exception.Message, "Could not save application settings", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 

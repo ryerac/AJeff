@@ -4,15 +4,25 @@
 
 [![CI](https://github.com/ryerac/AJeff/actions/workflows/ci.yml/badge.svg)](https://github.com/ryerac/AJeff/actions/workflows/ci.yml)
 
-AJeff is a community-built Windows desktop app for configuring AJAZZ macro pads
-without relying on the vendor application.
-
-The name is a small chain of wordplay: AJAZZ → jazz → Jazzy Jeff → AJeff.  Pointlessly stupid names is the best bit of any new project.
+AJeff is a small Windows portable app for configuring AJAZZ macro pads without
+relying on the vendor application. A project born out of an evening of simply not wanting to use the official software.
 
 It discovers supported devices over USB HID, presents their controls in a visual
 editor, and lets you turn buttons and dials into useful desktop actions.
 
-The goal is that it allows me to do everything I needed it to do, without needing software I could not audit. Also see [OpenDeck](https://github.com/nekename/OpenDeck) if you are on Linux.
+The aim is **deliberately simple**: provide the functionality needed for everyday
+use in one auditable, portable application, without requiring an account, cloud
+service, marketplace, or wider software ecosystem.
+
+That narrow scope will not suit everyone. For Linux, broader device coverage,
+or a more extensible Stream Deck-compatible environment, consider
+[OpenDeck](https://github.com/nekename/OpenDeck) or the Linux-focused
+[OpenDeck AJAZZ fork](https://github.com/mistweaverco/opendeck-ajazz). For more
+advanced automation, live telemetry, multiple hosts, and a wider plugin
+ecosystem, see [JIB — Jack In the Box](https://androme13.github.io/JIB/) which may suit your needs much better than this.
+
+The name is a small chain of wordplay: AJAZZ → jazz → Jazzy Jeff → AJeff.  Pointlessly stupid names is the best bit of any new project.
+
 
 ![AJeff main window](docs/images/ajeff-main-window.png)
 
@@ -34,6 +44,7 @@ The goal is that it allows me to do everything I needed it to do, without needin
 - Choose bundled icons (See credits), recolour SVG icons, or upload your own artwork
 - Show state-aware icons for actions such as mute
 - Extend the action palette through plugins
+- Optionally start with Windows and launch minimised
 
 AJeff stores bindings and settings locally in a local `%APPDATA%/Jeffdock` folder. Its built-in actions do not require an online account or cloud service.
 
@@ -115,6 +126,16 @@ runtime and all official plugins. Optional third-party plugins can be placed in
 
 Additional guides are collected in the [documentation index](docs/README.md),
 including plugin packaging and user-data locations.
+
+
+## FAQ
+
+### Why does it look so bad?
+Its basic. It was mostly made by robots, and WPF doesn't offer the same level as fancy as most modern app development without a lot more effort, simple. I may throw some UX effort in later.
+
+### Docs/Guides?
+Not yet, its fairly self explanitory but a proper guide is on the cards if anyone actually uses this.
+
 
 ## Contributing
 
