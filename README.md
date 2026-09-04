@@ -60,30 +60,30 @@ upgrade instructions, and a formal release process are still to come.
 The application currently targets Windows and .NET 10. Hardware behaviour should
 be treated as model-specific; reports from real devices are especially valuable.
 
-## Publishing
+## Get AJeff
 
-Create the self-contained Windows x64 release executable with:
+Download `AJeff.exe` from the
+[latest GitHub Release](https://github.com/ryerac/AJeff/releases/latest). AJeff is
+portable: place the executable wherever you want and run it without an
+installer or a separate .NET installation. Release downloads also include a
+SHA-256 checksum file for verifying the executable.
+
+Alternatively, install the .NET 10 SDK, clone this repository, and build the
+same self-contained Windows x64 executable locally:
 
 ```powershell
 dotnet publish .\JeffDock.App\JeffDock.App.csproj -p:PublishProfile=win-x64-single-file
 ```
 
-The resulting `AJeff.exe` is written beneath
+The locally built `AJeff.exe` is written beneath
 `JeffDock.App\bin\Release\net10.0-windows\win-x64\publish`. It includes the .NET
-runtime and all official plugins, so it can run without an installer or a
-separate .NET installation. Optional third-party plugins can still be placed in
+runtime and all official plugins. Optional third-party plugins can be placed in
 `%LOCALAPPDATA%\JeffDock\Plugins`.
 
-Tagged releases are built and published automatically by GitHub Actions. To
-create one after merging the release commit into `main`:
+## Documentation
 
-```powershell
-git tag -a v0.1.0 -m "AJeff v0.1.0"
-git push origin v0.1.0
-```
-
-Tags must use a semantic version such as `v1.2.3` or `v1.2.3-beta.1`. The
-release includes `AJeff.exe`, generated release notes, and a SHA-256 checksum.
+Additional guides are collected in the [documentation index](docs/README.md),
+including plugin packaging and user-data locations.
 
 ## Contributing
 
