@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="JeffDock" Height="780" Width="1320" MinHeight="650" MinWidth="1120"
+        Title="JeffDock" Icon="Assets/icon.ico" Height="780" Width="1320" MinHeight="650" MinWidth="1120"
         Background="{StaticResource AppBackgroundBrush}">
     <Grid Margin="16">
         <Grid.ColumnDefinitions>
@@ -17,6 +17,11 @@
 
         <Border Grid.Column="0" Style="{StaticResource CardBorderStyle}">
             <DockPanel>
+                <Image DockPanel.Dock="Top"
+                       Source="Assets/logo.png"
+                       Height="88"
+                       Stretch="Uniform"
+                       Margin="0,0,0,18" />
                 <TextBlock DockPanel.Dock="Top" Text="Connected Devices" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
                 <TextBlock DockPanel.Dock="Top" Text="Available hardware" Foreground="{StaticResource MutedTextBrush}" Margin="0,0,0,12" />
                 <ListBox x:Name="DevicesListBox"

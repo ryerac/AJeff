@@ -1,5 +1,7 @@
 # AJeff
 
+![AJeff logo](docs/images/logo.png)
+
 [![CI](https://github.com/ryerac/AJeff/actions/workflows/ci.yml/badge.svg)](https://github.com/ryerac/AJeff/actions/workflows/ci.yml)
 
 AJeff is a community-built Windows desktop app for configuring AJAZZ macro pads
@@ -9,6 +11,8 @@ The name is a small chain of wordplay: AJAZZ → jazz → Jazzy Jeff → AJeff. 
 
 It discovers supported devices over USB HID, presents their controls in a visual
 editor, and lets you turn buttons and dials into useful desktop actions.
+
+![AJeff main window](docs/images/ajeff-main-window.png)
 
 > [!IMPORTANT]
 > AJeff is an early-stage community project. Expect rough edges and changes to
@@ -54,13 +58,35 @@ Plugins run with the same permissions as AJeff. Currently all plugins are part o
 
 ## Project status
 
-AJeff is being prepared for its first "release" (In the loosest sense possible). Packaging, installation,
-upgrade instructions, and a formal release process are still to come.
+AJeff is functional and supports the core workflow: detecting a compatible
+device, assigning actions, managing scenes, updating button artwork, and loading
+plugins. It is still an early-stage project with basic functionality and an
+unstyled, utilitarian user experience. Expect rough edges and changes while the
+interaction model is refined.
 
 The application currently targets Windows and .NET 10. Hardware behaviour should
 be treated as model-specific; reports from real devices are especially valuable.
 
+## Roadmap
+
+The current priorities are:
+
+- Improve the visual design and general usability of the editor
+- Make device setup, action assignment, and plugin configuration clearer
+- Harden portable releases, upgrades, diagnostics, and error handling
+- Expand the built-in action and plugin selection
+- Add support for more devices as their USB protocols can be tested
+- Stabilise configuration formats and the plugin API as the project matures
+
+This roadmap describes the intended direction rather than committed release
+dates or guarantees.
+
 ## Get AJeff
+
+> [!IMPORTANT]
+> Fully close the AJAZZ software before starting AJeff. The vendor application
+> otherwise retains ownership of the device connection and prevents AJeff from
+> connecting to the macro pad.
 
 Download `AJeff.exe` from the
 [latest GitHub Release](https://github.com/ryerac/AJeff/releases/latest). AJeff is
