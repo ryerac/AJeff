@@ -8,6 +8,7 @@ using JeffDock.PluginContracts;
 using JeffDock.Plugins.Game;
 using JeffDock.Plugins.MouseMover;
 using JeffDock.Plugins.PiHole;
+using JeffDock.Plugins.System;
 using JeffDock.Plugins.Timer;
 
 namespace JeffDock.App.Plugins;
@@ -24,6 +25,7 @@ internal sealed class JeffDockPluginLoader
         LoadBuiltIn(new TimerPlugin());
         LoadBuiltIn(new GamePlugin());
         LoadBuiltIn(new PiHolePlugin(), "JeffDock.Plugins.PiHole.icon.svg");
+        LoadBuiltIn(new SystemPlugin());
 
         var roots = new[]
         {

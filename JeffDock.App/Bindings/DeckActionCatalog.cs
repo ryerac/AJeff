@@ -25,7 +25,6 @@ internal sealed class DeckActionCatalog : IDisposable
             new ToggleMuteAction(_volumeController),
             new ToggleMicrophoneMuteAction(_volumeController),
             new KeyboardShortcutAction(),
-            new LockWorkstationAction(),
             new MediaKeyAction(MediaKeyAction.PlayPauseActionId, "Play / Pause", System.Windows.Input.Key.MediaPlayPause),
             new MediaKeyAction(MediaKeyAction.NextTrackActionId, "Next Track", System.Windows.Input.Key.MediaNextTrack),
             new MediaKeyAction(MediaKeyAction.PreviousTrackActionId, "Previous Track", System.Windows.Input.Key.MediaPreviousTrack),

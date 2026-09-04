@@ -95,23 +95,6 @@
       ]
     },
     {
-      "id": "machine",
-      "name": "Machine",
-      "presets": [
-        {
-          "id": "machine.lock",
-          "name": "Lock Computer",
-          "description": "Lock the current Windows session.",
-          "controlTypes": [ "Button", "Encoder" ],
-          "bindings": [ { "trigger": "Press", "actionId": "core.machine.lock" } ],
-          "iconMode": "Static",
-          "iconId": "elgato/general/lock",
-          "iconForeground": "#FFFFFF",
-          "iconBackground": "#354052"
-        }
-      ]
-    },
-    {
       "id": "scenes",
       "name": "Scenes",
       "presets": [

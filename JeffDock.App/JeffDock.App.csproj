@@ -7,6 +7,7 @@
     <ProjectReference Include="..\JeffDock.Plugins\JeffDock.Plugins.Timer\JeffDock.Plugins.Timer.csproj" />
     <ProjectReference Include="..\JeffDock.Plugins\JeffDock.Plugins.Game\JeffDock.Plugins.Game.csproj" />
     <ProjectReference Include="..\JeffDock.Plugins\JeffDock.Plugins.PiHole\JeffDock.Plugins.PiHole.csproj" />
+    <ProjectReference Include="..\JeffDock.Plugins\JeffDock.Plugins.System\JeffDock.Plugins.System.csproj" />
     <PackageReference Include="Svg.Skia" Version="5.2.3" />
   </ItemGroup>
 

@@ -1,0 +1,8 @@
+{
+  "id": "jeffdock.system",
+  "name": "System",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "entryAssembly": "JeffDock.Plugins.System.dll",
+  "entryType": "JeffDock.Plugins.System.SystemPlugin"
+}

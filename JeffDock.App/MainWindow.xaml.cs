@@ -1377,9 +1377,18 @@ public partial class MainWindow : Window
                 left.Children.Add(new TextBlock { Text = definition.Description, Foreground = (Brush)FindResource("MutedTextBrush"), TextWrapping = TextWrapping.Wrap, MaxWidth = 380 });
             row.Children.Add(left);
 
-            Control editor = definition.Type == PluginSettingType.Password
-                ? new PasswordBox { Password = storedValue ?? definition.DefaultValue, Width = 85, Margin = new Thickness(8, 0, 0, 0) }
-                : new TextBox { Text = storedValue ?? definition.DefaultValue, Width = 85, Margin = new Thickness(8, 0, 0, 0) };
+            Control editor = definition.Type switch
+            {
+                PluginSettingType.Password => new PasswordBox { Password = storedValue ?? definition.DefaultValue, Width = 85, Margin = new Thickness(8, 0, 0, 0) },
+                PluginSettingType.Boolean => new CheckBox
+                {
+                    IsChecked = bool.TryParse(storedValue ?? definition.DefaultValue, out var isChecked) && isChecked,
+                    Width = 85,
+                    Margin = new Thickness(8, 0, 0, 0),
+                    VerticalAlignment = VerticalAlignment.Center,
+                },
+                _ => new TextBox { Text = storedValue ?? definition.DefaultValue, Width = 85, Margin = new Thickness(8, 0, 0, 0) },
+            };
             var overrideBox = new CheckBox { Content = "Override", IsChecked = hasOverride, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
             editor.IsEnabled = hasOverride;
             overrideBox.Checked += (_, _) => editor.IsEnabled = true;
@@ -1409,6 +1418,7 @@ public partial class MainWindow : Window
                     value = entry.Editor switch
                     {
                         PasswordBox passwordBox => passwordBox.Password,
+                        CheckBox checkBox => checkBox.IsChecked == true ? "true" : "false",
                         TextBox textBox => textBox.Text.Trim(),
                         _ => throw new InvalidOperationException($"Unsupported editor for {entry.Definition.DisplayName}."),
                     };

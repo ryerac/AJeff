@@ -68,6 +68,7 @@ AJeff currently bundles a small set of trusted, in-process plugins:
 - **Timer** — provides timer actions and visual state.
 - **Fun** (?) — provides a simple built-in game helpers - Dice roller (D6 only at time of writing) and a coin flip.
 - **[Pi-hole Monitor](JeffDock.Plugins/JeffDock.Plugins.PiHole/README.md)** — monitors Pi-hole v6 availability and blocked-query counts for the last 24hr
+- **[System](JeffDock.Plugins/JeffDock.Plugins.System/README.md)** — locks or sleeps Windows and launches apps or trusted commands
 
 Plugins run with the same permissions as AJeff. Currently all plugins are part of this repo (Rather than sub-repos), although nothing is stopping someone writing their own - Once the package is published for the interfaces.
 
