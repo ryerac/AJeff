@@ -1,4 +1,4 @@
-﻿using JeffDock.Core.Audio;
+using JeffDock.Core.Audio;
 using JeffDock.Core.Deck;
 
 using var cts = new CancellationTokenSource();
@@ -68,3 +68,4 @@ while (!cts.IsCancellationRequested)
 
 deviceService.Disconnect();
 Console.WriteLine("Stopped.");
+

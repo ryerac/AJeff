@@ -5,6 +5,10 @@ using System.Text.Json;
 using System.Windows.Media;
 using JeffDock.App.Icons;
 using JeffDock.PluginContracts;
+using JeffDock.Plugins.Game;
+using JeffDock.Plugins.MouseMover;
+using JeffDock.Plugins.PiHole;
+using JeffDock.Plugins.Timer;
 
 namespace JeffDock.App.Plugins;
 
@@ -16,6 +20,11 @@ internal sealed class JeffDockPluginLoader
 
     public void LoadAll()
     {
+        LoadBuiltIn(new MouseMoverPlugin());
+        LoadBuiltIn(new TimerPlugin());
+        LoadBuiltIn(new GamePlugin());
+        LoadBuiltIn(new PiHolePlugin(), "JeffDock.Plugins.PiHole.icon.svg");
+
         var roots = new[]
         {
             Path.Combine(AppContext.BaseDirectory, "Plugins"),
@@ -25,6 +34,23 @@ internal sealed class JeffDockPluginLoader
         foreach (var manifestPath in roots.Where(Directory.Exists).SelectMany(root => Directory.EnumerateFiles(root, "plugin.json", SearchOption.AllDirectories)))
         {
             Load(manifestPath);
+        }
+    }
+
+    private void LoadBuiltIn(IJeffDockPlugin plugin, string? iconResourceName = null)
+    {
+        try
+        {
+            plugin.Register(Registry);
+            var icon = iconResourceName is null
+                ? null
+                : LoadIcon(plugin.GetType().Assembly, iconResourceName);
+            Plugins.Add(new LoadedPlugin(plugin.Id, plugin.DisplayName, plugin.Version, icon));
+            Diagnostics.Add($"Loaded built-in {plugin.DisplayName} {plugin.Version}.");
+        }
+        catch (Exception exception)
+        {
+            Diagnostics.Add($"Could not load built-in {plugin.DisplayName}: {exception.Message}");
         }
     }
 
@@ -39,6 +65,10 @@ internal sealed class JeffDockPluginLoader
             if (manifest.ApiVersion != 1)
             {
                 throw new InvalidDataException($"Unsupported API version {manifest.ApiVersion}.");
+            }
+            if (Plugins.Any(plugin => string.Equals(plugin.Id, manifest.Id, StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new InvalidDataException($"Plugin ID '{manifest.Id}' is already loaded.");
             }
 
             var directory = Path.GetDirectoryName(manifestPath)!;
@@ -58,6 +88,24 @@ internal sealed class JeffDockPluginLoader
         catch (Exception exception)
         {
             Diagnostics.Add($"Skipped {manifestPath}: {exception.Message}");
+        }
+    }
+
+    private ImageSource? LoadIcon(Assembly assembly, string resourceName)
+    {
+        try
+        {
+            using var stream = assembly.GetManifestResourceStream(resourceName)
+                ?? throw new InvalidDataException($"Embedded plugin icon '{resourceName}' was not found.");
+            using var memory = new MemoryStream();
+            stream.CopyTo(memory);
+            var imageBytes = SvgIconRenderer.RenderPng(memory.ToArray(), "#FFFFFF", null, size: 96);
+            return SvgIconRenderer.ToBitmapSource(imageBytes, decodeWidth: 96);
+        }
+        catch (Exception exception) when (exception is IOException or InvalidDataException or FormatException)
+        {
+            Diagnostics.Add($"Could not load embedded plugin icon '{resourceName}': {exception.Message}");
+            return null;
         }
     }
 

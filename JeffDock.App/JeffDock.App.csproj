@@ -3,10 +3,10 @@
   <ItemGroup>
     <ProjectReference Include="..\JeffDock.Core\JeffDock.Core.csproj" />
     <ProjectReference Include="..\JeffDock.PluginContracts\JeffDock.PluginContracts.csproj" />
-    <ProjectReference Include="..\JeffDock.Plugins\JeffDock.Plugins.MouseMover\JeffDock.Plugins.MouseMover.csproj" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\JeffDock.Plugins\JeffDock.Plugins.Timer\JeffDock.Plugins.Timer.csproj" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\JeffDock.Plugins\JeffDock.Plugins.Game\JeffDock.Plugins.Game.csproj" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\JeffDock.Plugins\JeffDock.Plugins.PiHole\JeffDock.Plugins.PiHole.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\JeffDock.Plugins\JeffDock.Plugins.MouseMover\JeffDock.Plugins.MouseMover.csproj" />
+    <ProjectReference Include="..\JeffDock.Plugins\JeffDock.Plugins.Timer\JeffDock.Plugins.Timer.csproj" />
+    <ProjectReference Include="..\JeffDock.Plugins\JeffDock.Plugins.Game\JeffDock.Plugins.Game.csproj" />
+    <ProjectReference Include="..\JeffDock.Plugins\JeffDock.Plugins.PiHole\JeffDock.Plugins.PiHole.csproj" />
     <PackageReference Include="Svg.Skia" Version="5.2.3" />
   </ItemGroup>
 
@@ -27,34 +27,13 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
+    <AssemblyName>AJeff</AssemblyName>
+    <RootNamespace>JeffDock.App</RootNamespace>
     <TargetFramework>net10.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
-
-  <Target Name="CopyOfficialPlugins" AfterTargets="Build">
-    <ItemGroup>
-      <OfficialPluginFiles Include="..\JeffDock.Plugins\JeffDock.Plugins.MouseMover\bin\$(Configuration)\net10.0-windows\JeffDock.Plugins.MouseMover.dll" />
-      <OfficialPluginFiles Include="..\JeffDock.Plugins\JeffDock.Plugins.MouseMover\plugin.json" />
-      <OfficialTimerPluginFiles Include="..\JeffDock.Plugins\JeffDock.Plugins.Timer\bin\$(Configuration)\net10.0-windows\JeffDock.Plugins.Timer.dll" />
-      <OfficialTimerPluginFiles Include="..\JeffDock.Plugins\JeffDock.Plugins.Timer\plugin.json" />
-      <OfficialGamePluginFiles Include="..\JeffDock.Plugins\JeffDock.Plugins.Game\bin\$(Configuration)\net10.0-windows\JeffDock.Plugins.Game.dll" />
-      <OfficialGamePluginFiles Include="..\JeffDock.Plugins\JeffDock.Plugins.Game\plugin.json" />
-      <OfficialPiHolePluginFiles Include="..\JeffDock.Plugins\JeffDock.Plugins.PiHole\bin\$(Configuration)\net10.0-windows\JeffDock.Plugins.PiHole.dll" />
-      <OfficialPiHolePluginFiles Include="..\JeffDock.Plugins\JeffDock.Plugins.PiHole\plugin.json" />
-    </ItemGroup>
-    <MakeDir Directories="$(OutDir)Plugins\MouseMover" />
-    <Copy SourceFiles="@(OfficialPluginFiles)" DestinationFolder="$(OutDir)Plugins\MouseMover" SkipUnchangedFiles="true" />
-    <MakeDir Directories="$(OutDir)Plugins\Timer" />
-    <Copy SourceFiles="@(OfficialTimerPluginFiles)" DestinationFolder="$(OutDir)Plugins\Timer" SkipUnchangedFiles="true" />
-    <MakeDir Directories="$(OutDir)Plugins\Game" />
-    <Copy SourceFiles="@(OfficialGamePluginFiles)" DestinationFolder="$(OutDir)Plugins\Game" SkipUnchangedFiles="true" />
-    <MakeDir Directories="$(OutDir)Plugins\PiHole" />
-    <Copy SourceFiles="@(OfficialPiHolePluginFiles)" DestinationFolder="$(OutDir)Plugins\PiHole" SkipUnchangedFiles="true" />
-    <MakeDir Directories="$(OutDir)Plugins\PiHole\Assets" />
-    <Copy SourceFiles="..\JeffDock.Plugins\JeffDock.Plugins.PiHole\Assets\icon.svg" DestinationFolder="$(OutDir)Plugins\PiHole\Assets" SkipUnchangedFiles="true" />
-  </Target>
 
 </Project>

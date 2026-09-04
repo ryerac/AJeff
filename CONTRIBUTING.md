@@ -29,6 +29,7 @@ Non-goals for now:
 ## Repository Layout
 
 - `JeffDock.Core/`: device, protocol, layout, and monitoring logic
+- `JeffDock.Cli/`: console-based device diagnostic harness
 - `JeffDock.App/`: WPF application on top of the core layer
 - `JeffDock.Core.Tests/`: focused core tests
 - `nuget.config`: repo-local NuGet source config
@@ -78,10 +79,10 @@ Run the WPF app:
 dotnet run --project .\JeffDock.App\JeffDock.App.csproj --configfile .\nuget.config
 ```
 
-Run the console core app:
+Run the console diagnostic app:
 
 ```powershell
-dotnet run --project .\JeffDock.Core\JeffDock.Core.csproj --configfile .\nuget.config
+dotnet run --project .\JeffDock.Cli\JeffDock.Cli.csproj --configfile .\nuget.config
 ```
 
 Run core tests:

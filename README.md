@@ -58,6 +58,20 @@ upgrade instructions, and a formal release process are still to come.
 The application currently targets Windows and .NET 10. Hardware behaviour should
 be treated as model-specific; reports from real devices are especially valuable.
 
+## Publishing
+
+Create the self-contained Windows x64 release executable with:
+
+```powershell
+dotnet publish .\JeffDock.App\JeffDock.App.csproj -p:PublishProfile=win-x64-single-file
+```
+
+The resulting `AJeff.exe` is written beneath
+`JeffDock.App\bin\Release\net10.0-windows\win-x64\publish`. It includes the .NET
+runtime and all official plugins, so it can run without an installer or a
+separate .NET installation. Optional third-party plugins can still be placed in
+`%LOCALAPPDATA%\JeffDock\Plugins`.
+
 ## Contributing
 
 Bug reports, device protocol findings, focused fixes, and new device profiles are
