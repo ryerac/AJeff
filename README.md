@@ -12,6 +12,8 @@ The name is a small chain of wordplay: AJAZZ → jazz → Jazzy Jeff → AJeff. 
 It discovers supported devices over USB HID, presents their controls in a visual
 editor, and lets you turn buttons and dials into useful desktop actions.
 
+The goal is that it allows me to do everything I needed it to do, without needing software I could not audit. Also see [OpenDeck](https://github.com/nekename/OpenDeck) if you are on Linux.
+
 ![AJeff main window](docs/images/ajeff-main-window.png)
 
 > [!IMPORTANT]
@@ -29,14 +31,15 @@ editor, and lets you turn buttons and dials into useful desktop actions.
 - Control speaker volume and speaker or microphone mute state
 - Send media keys and keyboard shortcuts
 - Organise layouts into named scenes and switch between them from the device
-- Choose bundled icons, recolour SVG icons, or upload your own artwork
+- Choose bundled icons (See credits), recolour SVG icons, or upload your own artwork
 - Show state-aware icons for actions such as mute
 - Extend the action palette through plugins
 
-AJeff stores bindings and settings locally. Its built-in actions do not require
-an online account or cloud service.
+AJeff stores bindings and settings locally in a local `%APPDATA%/Jeffdock` folder. Its built-in actions do not require an online account or cloud service.
 
 ## Supported hardware
+
+Windows only.
 
 The currently included device profile is:
 
@@ -44,21 +47,22 @@ The currently included device profile is:
 
 Other models may use different USB protocols even when they look similar. They
 need their own tested device profile before they can be considered supported.
+If you have an AJAZZ, please feel free to create a discussion so we can add the profile! Heck, it may even work with other chinese-marketplace pads which operate in the same way!
 
 ## Included plugins
 
 AJeff currently bundles a small set of trusted, in-process plugins:
 
 - **Mouse Mover** — Simplistic mouse jiggle. Periodically nudges the pointer
-- **Timer** — provides timer actions and visual state
-- **Fun** — provides a simple built-in game helpers - Dice roller (D6 only at time of writing) and a coin flip.
-- **[Pi-hole Monitor](JeffDock.Plugins/JeffDock.Plugins.PiHole/README.md)** — monitors Pi-hole v6 availability and blocked-query counts
+- **Timer** — provides timer actions and visual state.
+- **Fun** (?) — provides a simple built-in game helpers - Dice roller (D6 only at time of writing) and a coin flip.
+- **[Pi-hole Monitor](JeffDock.Plugins/JeffDock.Plugins.PiHole/README.md)** — monitors Pi-hole v6 availability and blocked-query counts for the last 24hr
 
-Plugins run with the same permissions as AJeff. Currently all plugins are part of this repo (Rather than sub-repos), although nothing is stopping someone writing their own
+Plugins run with the same permissions as AJeff. Currently all plugins are part of this repo (Rather than sub-repos), although nothing is stopping someone writing their own - Once the package is published for the interfaces.
 
 ## Project status
 
-AJeff is functional and supports the core workflow: detecting a compatible
+AJeff is mostly functional and supports the core workflow: detecting a compatible
 device, assigning actions, managing scenes, updating button artwork, and loading
 plugins. It is still an early-stage project with basic functionality and an
 unstyled, utilitarian user experience. Expect rough edges and changes while the
@@ -66,6 +70,7 @@ interaction model is refined.
 
 The application currently targets Windows and .NET 10. Hardware behaviour should
 be treated as model-specific; reports from real devices are especially valuable.
+No plans to target Linux currently, as there are already options for that platform.
 
 ## Roadmap
 
