@@ -6,6 +6,7 @@
     <ProjectReference Include="..\JeffDock.Plugins\JeffDock.Plugins.MouseMover\JeffDock.Plugins.MouseMover.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\JeffDock.Plugins\JeffDock.Plugins.Timer\JeffDock.Plugins.Timer.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\JeffDock.Plugins\JeffDock.Plugins.Game\JeffDock.Plugins.Game.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\JeffDock.Plugins\JeffDock.Plugins.PiHole\JeffDock.Plugins.PiHole.csproj" ReferenceOutputAssembly="false" />
     <PackageReference Include="Svg.Skia" Version="5.2.3" />
   </ItemGroup>
 
@@ -41,6 +42,8 @@
       <OfficialTimerPluginFiles Include="..\JeffDock.Plugins\JeffDock.Plugins.Timer\plugin.json" />
       <OfficialGamePluginFiles Include="..\JeffDock.Plugins\JeffDock.Plugins.Game\bin\$(Configuration)\net10.0-windows\JeffDock.Plugins.Game.dll" />
       <OfficialGamePluginFiles Include="..\JeffDock.Plugins\JeffDock.Plugins.Game\plugin.json" />
+      <OfficialPiHolePluginFiles Include="..\JeffDock.Plugins\JeffDock.Plugins.PiHole\bin\$(Configuration)\net10.0-windows\JeffDock.Plugins.PiHole.dll" />
+      <OfficialPiHolePluginFiles Include="..\JeffDock.Plugins\JeffDock.Plugins.PiHole\plugin.json" />
     </ItemGroup>
     <MakeDir Directories="$(OutDir)Plugins\MouseMover" />
     <Copy SourceFiles="@(OfficialPluginFiles)" DestinationFolder="$(OutDir)Plugins\MouseMover" SkipUnchangedFiles="true" />
@@ -48,6 +51,10 @@
     <Copy SourceFiles="@(OfficialTimerPluginFiles)" DestinationFolder="$(OutDir)Plugins\Timer" SkipUnchangedFiles="true" />
     <MakeDir Directories="$(OutDir)Plugins\Game" />
     <Copy SourceFiles="@(OfficialGamePluginFiles)" DestinationFolder="$(OutDir)Plugins\Game" SkipUnchangedFiles="true" />
+    <MakeDir Directories="$(OutDir)Plugins\PiHole" />
+    <Copy SourceFiles="@(OfficialPiHolePluginFiles)" DestinationFolder="$(OutDir)Plugins\PiHole" SkipUnchangedFiles="true" />
+    <MakeDir Directories="$(OutDir)Plugins\PiHole\Assets" />
+    <Copy SourceFiles="..\JeffDock.Plugins\JeffDock.Plugins.PiHole\Assets\icon.svg" DestinationFolder="$(OutDir)Plugins\PiHole\Assets" SkipUnchangedFiles="true" />
   </Target>
 
 </Project>

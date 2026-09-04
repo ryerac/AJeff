@@ -32,6 +32,7 @@ public enum PluginSettingType
     Boolean,
     Choice,
     Color,
+    Password,
 }
 
 public sealed record PluginSettingChoice(string Value, string DisplayName);

@@ -702,6 +702,10 @@ public partial class MainWindow : Window
         PresetPalettePanel.Children.Clear();
         foreach (var section in _presetCatalog.Sections)
         {
+            var pluginIcon = section.PluginId is null
+                ? null
+                : _pluginLoader.Plugins.FirstOrDefault(plugin =>
+                    string.Equals(plugin.Id, section.PluginId, StringComparison.OrdinalIgnoreCase))?.Icon;
             var contents = new StackPanel();
             foreach (var preset in section.Presets)
             {
@@ -716,7 +720,7 @@ public partial class MainWindow : Window
                     Background = Brushes.White,
                     Cursor = Cursors.Hand,
                     ToolTip = preset.Description,
-                    Child = BuildPresetPaletteItem(preset),
+                    Child = BuildPresetPaletteItem(preset, pluginIcon),
                 };
                 item.PreviewMouseMove += PresetItem_OnPreviewMouseMove;
                 contents.Children.Add(item);
@@ -724,7 +728,7 @@ public partial class MainWindow : Window
 
             PresetPalettePanel.Children.Add(new Expander
             {
-                Header = section.Name,
+                Header = BuildPresetSectionHeader(section.Name, pluginIcon),
                 IsExpanded = true,
                 Margin = new Thickness(0, 0, 0, 12),
                 Content = contents,
@@ -732,10 +736,20 @@ public partial class MainWindow : Window
         }
     }
 
-    private FrameworkElement BuildPresetPaletteItem(DeckControlPreset preset)
+    private static FrameworkElement BuildPresetSectionHeader(string name, ImageSource? pluginIcon)
+    {
+        if (pluginIcon is null) return new TextBlock { Text = name };
+        var panel = new StackPanel { Orientation = Orientation.Horizontal };
+        panel.Children.Add(new Image { Source = pluginIcon, Width = 18, Height = 18, Stretch = Stretch.Uniform, Margin = new Thickness(0, 0, 6, 0) });
+        panel.Children.Add(new TextBlock { Text = name, VerticalAlignment = VerticalAlignment.Center });
+        return panel;
+    }
+
+    private FrameworkElement BuildPresetPaletteItem(DeckControlPreset preset, ImageSource? pluginIcon)
     {
         var panel = new DockPanel();
-        if (ResolvePresetIconBytes(preset) is { } iconBytes)
+        var iconBytes = ResolvePresetIconBytes(preset);
+        if (iconBytes is not null || pluginIcon is not null)
         {
             panel.Children.Add(new Border
             {
@@ -743,7 +757,9 @@ public partial class MainWindow : Window
                 Height = 34,
                 Margin = new Thickness(0, 0, 9, 0),
                 CornerRadius = new CornerRadius(4),
-                Child = BuildPreviewImage(iconBytes),
+                Child = iconBytes is not null
+                    ? BuildPreviewImage(iconBytes)
+                    : new Image { Source = pluginIcon, Stretch = Stretch.Uniform },
             });
         }
 
@@ -1361,7 +1377,9 @@ public partial class MainWindow : Window
                 left.Children.Add(new TextBlock { Text = definition.Description, Foreground = (Brush)FindResource("MutedTextBrush"), TextWrapping = TextWrapping.Wrap, MaxWidth = 380 });
             row.Children.Add(left);
 
-            var editor = new TextBox { Text = storedValue ?? definition.DefaultValue, Width = 85, Margin = new Thickness(8, 0, 0, 0) };
+            Control editor = definition.Type == PluginSettingType.Password
+                ? new PasswordBox { Password = storedValue ?? definition.DefaultValue, Width = 85, Margin = new Thickness(8, 0, 0, 0) }
+                : new TextBox { Text = storedValue ?? definition.DefaultValue, Width = 85, Margin = new Thickness(8, 0, 0, 0) };
             var overrideBox = new CheckBox { Content = "Override", IsChecked = hasOverride, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
             editor.IsEnabled = hasOverride;
             overrideBox.Checked += (_, _) => editor.IsEnabled = true;
@@ -1388,7 +1406,12 @@ public partial class MainWindow : Window
                 string? value = null;
                 if (entry.Override.IsChecked == true)
                 {
-                    value = ((TextBox)entry.Editor).Text.Trim();
+                    value = entry.Editor switch
+                    {
+                        PasswordBox passwordBox => passwordBox.Password,
+                        TextBox textBox => textBox.Text.Trim(),
+                        _ => throw new InvalidOperationException($"Unsupported editor for {entry.Definition.DisplayName}."),
+                    };
                     if (entry.Definition.Type == PluginSettingType.Integer
                         && (!long.TryParse(value, out var number)
                             || entry.Definition.Minimum.HasValue && number < entry.Definition.Minimum

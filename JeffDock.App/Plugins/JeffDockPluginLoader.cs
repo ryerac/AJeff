@@ -2,6 +2,8 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.Text.Json;
+using System.Windows.Media;
+using JeffDock.App.Icons;
 using JeffDock.PluginContracts;
 
 namespace JeffDock.App.Plugins;
@@ -50,7 +52,7 @@ internal sealed class JeffDockPluginLoader
             }
 
             plugin.Register(Registry);
-            Plugins.Add(new LoadedPlugin(plugin.Id, plugin.DisplayName, plugin.Version));
+            Plugins.Add(new LoadedPlugin(plugin.Id, plugin.DisplayName, plugin.Version, LoadIcon(directory, manifest.Icon)));
             Diagnostics.Add($"Loaded {plugin.DisplayName} {plugin.Version}.");
         }
         catch (Exception exception)
@@ -59,7 +61,29 @@ internal sealed class JeffDockPluginLoader
         }
     }
 
-    private sealed record PluginManifest(string Id, int ApiVersion, string EntryAssembly, string EntryType);
+    private ImageSource? LoadIcon(string pluginDirectory, string? relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath)) return null;
+        try
+        {
+            var root = Path.GetFullPath(pluginDirectory) + Path.DirectorySeparatorChar;
+            var path = Path.GetFullPath(Path.Combine(pluginDirectory, relativePath));
+            if (!path.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("Plugin icon must be inside the plugin directory.");
+            var bytes = File.ReadAllBytes(path);
+            var imageBytes = string.Equals(Path.GetExtension(path), ".svg", StringComparison.OrdinalIgnoreCase)
+                ? SvgIconRenderer.RenderPng(bytes, "#FFFFFF", null, size: 96)
+                : bytes;
+            return SvgIconRenderer.ToBitmapSource(imageBytes, decodeWidth: 96);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or FormatException)
+        {
+            Diagnostics.Add($"Could not load plugin icon '{relativePath}': {exception.Message}");
+            return null;
+        }
+    }
+
+    private sealed record PluginManifest(string Id, int ApiVersion, string EntryAssembly, string EntryType, string? Icon = null);
 }
 
-internal sealed record LoadedPlugin(string Id, string DisplayName, Version Version);
+internal sealed record LoadedPlugin(string Id, string DisplayName, Version Version, ImageSource? Icon);

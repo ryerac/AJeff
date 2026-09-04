@@ -8,7 +8,7 @@ The project currently includes:
 - a WPF desktop app for device discovery, raw input monitoring, and basic control binding
 - an initial AKP03E profile implementation
 
-This guide is written for both humans and coding agents picking the repo up cold.
+This guide is intended to help contributors get productive quickly.
 
 ## Scope
 
@@ -127,11 +127,17 @@ The WPF app currently supports:
 - assigning actions for knob turn, knob press, or button press
 - saving bindings per device in `%AppData%\JeffDock\bindings.json`
 
-Implemented action kinds are currently small by design:
+The built-in action set includes:
 
 - `None`
 - `VolumeAdjust`
 - `ToggleMute`
+- `ToggleMicrophoneMute`
+- media keys
+- keyboard shortcuts
+- scene navigation
+
+Additional actions and state sources can be supplied by plugins.
 
 If you extend this, keep action modeling explicit and typed. Avoid turning bindings into stringly-typed ad hoc payloads too early.
 
@@ -165,25 +171,6 @@ If you are making a parser or identity change, tests should be updated in the sa
 - avoid mixing large UI redesigns with protocol or HID refactors
 - avoid duplicating HID/session lifecycle code in multiple services
 - preserve Windows-first assumptions unless the repository direction changes
-
-## For Coding Agents
-
-If you are picking this repo up for the first time, start here:
-
-1. read `JeffDock.Core/Deck/DeckProfileCatalog.cs`
-2. read `JeffDock.Core/Deck/IDeckProtocolProfile.cs`
-3. read `JeffDock.Core/Deck/HidDeckDiscovery.cs`
-4. read `JeffDock.Core/Deck/DeckMonitorService.cs`
-5. read `JeffDock.App/MainWindow.xaml.cs`
-
-Then determine which layer the requested change belongs to:
-
-- protocol/profile problem: `JeffDock.Core/Akp03e` or another profile folder
-- HID discovery/identity problem: `JeffDock.Core/Deck`
-- device log or monitor problem: `JeffDock.Core/Deck/DeckMonitorService.cs`
-- binding behavior or UI problem: `JeffDock.App`
-
-Before changing build or restore behavior, remember this repo intentionally uses `nuget.config` at the root to avoid environment-specific feed failures.
 
 ## Pull Request Expectations
 

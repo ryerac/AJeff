@@ -2,7 +2,11 @@ using JeffDock.Core.Deck;
 
 namespace JeffDock.App.Presets;
 
-internal sealed record DeckPresetSection(string Id, string Name, IReadOnlyList<DeckControlPreset> Presets);
+internal sealed record DeckPresetSection(
+    string Id,
+    string Name,
+    IReadOnlyList<DeckControlPreset> Presets,
+    string? PluginId = null);
 
 internal sealed record DeckControlPreset(
     string Id,

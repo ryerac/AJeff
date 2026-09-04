@@ -42,6 +42,8 @@ public partial class PluginSettingsWindow : Window
         SettingsPanel.Children.Clear();
         _editors.Clear();
         PluginTitle.Text = _selectedPlugin?.DisplayName ?? "No plugin selected";
+        PluginIcon.Source = _selectedPlugin?.Icon;
+        PluginIcon.Visibility = _selectedPlugin?.Icon is null ? Visibility.Collapsed : Visibility.Visible;
         PluginVersion.Text = _selectedPlugin is null ? "" : $"Version {_selectedPlugin.Version}";
         SaveButton.IsEnabled = EditJsonButton.IsEnabled = _settings is not null;
 
@@ -104,6 +106,10 @@ public partial class PluginSettingsWindow : Window
                 SelectedItem = choices.FirstOrDefault(choice => string.Equals(choice.Value, value, StringComparison.OrdinalIgnoreCase)),
             };
         }
+        if (definition.Type == PluginSettingType.Password)
+        {
+            return new PasswordBox { Password = value, Width = 240, Padding = new Thickness(4, 3, 4, 3) };
+        }
         return new TextBox { Text = value, Width = 240, Padding = new Thickness(4, 3, 4, 3) };
     }
 
@@ -131,6 +137,7 @@ public partial class PluginSettingsWindow : Window
             ?? throw new FormatException($"Select a value for {definition.DisplayName}."),
         PluginSettingType.Integer => long.Parse(((TextBox)editor).Text, NumberStyles.Integer, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture),
         PluginSettingType.Decimal => decimal.Parse(((TextBox)editor).Text, NumberStyles.Number, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture),
+        PluginSettingType.Password => ((PasswordBox)editor).Password,
         _ => ((TextBox)editor).Text,
     };
 

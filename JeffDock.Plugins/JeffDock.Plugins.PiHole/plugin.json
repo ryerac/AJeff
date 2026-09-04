@@ -1,0 +1,9 @@
+{
+  "id": "jeffdock.pihole",
+  "name": "Pi-hole Monitor",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "icon": "Assets/icon.svg",
+  "entryAssembly": "JeffDock.Plugins.PiHole.dll",
+  "entryType": "JeffDock.Plugins.PiHole.PiHolePlugin"
+}
