@@ -27,10 +27,18 @@ public partial class MainWindow
         border.ContextMenu = new ContextMenu();
         var copy = new MenuItem { Header = "_Copy control", InputGestureText = "Ctrl+C" };
         var paste = new MenuItem { Header = "_Paste control", InputGestureText = "Ctrl+V" };
+        var reset = new MenuItem { Header = "_Reset control", InputGestureText = "Delete" };
         copy.Click += (_, _) => CopyControl(control);
         paste.Click += (_, _) => PasteControl(control);
+        reset.Click += (sender, e) =>
+        {
+            SelectControl(control);
+            ResetControlButton_OnClick(sender, e);
+        };
         border.ContextMenu.Items.Add(copy);
         border.ContextMenu.Items.Add(paste);
+        border.ContextMenu.Items.Add(new Separator());
+        border.ContextMenu.Items.Add(reset);
         border.ContextMenuOpening += (_, _) =>
         {
             border.Focus();

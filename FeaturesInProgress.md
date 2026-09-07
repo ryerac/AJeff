@@ -84,8 +84,32 @@ Automated validation:
 
 - [x] Core suite: 38 passing tests, including idle timing, both sleep modes,
   brightness restoration, cached artwork, waking input/repeats, and failed wake.
-- [x] Application suite: 7 passing tests, including independent copied bindings
+- [x] Application suite: 11 passing tests, including independent copied bindings
   and artwork, incompatible paste targets, settings persistence, and WPF display
-  settings and automation peers. Application tests also run in CI.
+  settings and automation peers, plus usage calculations and live Windows readings.
+  Application tests also run in CI.
 
 See [editing and display settings](docs/editing-and-display.md) for usage.
+
+## Image plugin
+
+Status: Implemented using the existing static artwork pipeline.
+
+- [x] Bundle an Image plugin and preset for display buttons.
+- [x] Choose artwork using Library or Upload Icon; pressing the button does nothing.
+- [x] Reuse local icon storage, scenes, copy/paste, and display management.
+
+GIF files can be uploaded as still images. Animated GIF playback is not currently
+supported; it would require retaining and scheduling animation frames rather
+than converting uploads into one JPEG.
+
+## CPU and RAM usage
+
+Status: Implemented in the System plugin.
+
+- [x] CPU Usage and RAM Usage presets for display buttons.
+- [x] Live percentage, metric label, and usage bar; pressing does nothing.
+- [x] Sample once per second and redraw when the displayed percentage changes.
+- [x] Show `--` while waiting for CPU's first interval or when a reading fails.
+- [x] Keep updates working on all connected devices, with existing idle sleep behaviour.
+- [ ] Verify readability and live updates on the physical deck.

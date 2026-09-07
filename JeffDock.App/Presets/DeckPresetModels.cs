@@ -17,7 +17,8 @@ internal sealed record DeckControlPreset(
     string? IconMode,
     string? IconId = null,
     string? IconForeground = null,
-    string? IconBackground = null)
+    string? IconBackground = null,
+    bool RequiresDisplay = false)
 {
     public bool Supports(DeckControlType controlType) =>
         ControlTypes.Any(value => string.Equals(value, controlType.ToString(), StringComparison.OrdinalIgnoreCase));

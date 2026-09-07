@@ -4,7 +4,7 @@ AJeff has two plugin categories.
 
 ## Official plugins
 
-Mouse Mover, Timer, Fun, and Pi-hole Monitor are compiled into `AJeff.exe`.
+Image, Mouse Mover, Timer, Fun, Pi-hole Monitor, and System are compiled into `AJeff.exe`.
 Their implementation files and manifests are not distributed alongside the
 application. Their settings remain editable through **Plugins & Settings**.
 

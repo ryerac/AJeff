@@ -14,6 +14,12 @@ public sealed class SystemPlugin : IJeffDockPlugin
 
     public void Register(IJeffDockPluginRegistry registry)
     {
+        var cpu = new UsageStateSource("cpu", "CPU", new WindowsCpuUsageReader().Read);
+        var ram = new UsageStateSource("ram", "RAM", WindowsMemoryUsage.Read);
+        registry.AddStateSource(cpu);
+        registry.AddStateSource(ram);
+        registry.AddAction(new UsageAction("cpu", "CPU Usage", cpu.Id));
+        registry.AddAction(new UsageAction("ram", "RAM Usage", ram.Id));
         registry.AddAction(new LockWorkstationAction());
         registry.AddAction(new SleepAction());
         registry.AddAction(new RunApplicationAction());
@@ -30,6 +36,30 @@ public sealed class SystemPlugin : IJeffDockPlugin
               "name": "System",
               "pluginId": "jeffdock.system",
               "presets": [
+                {
+                  "id": "system.cpu",
+                  "name": "CPU Usage",
+                  "description": "Show CPU activity as a live percentage, refreshed every second.",
+                  "controlTypes": [ "Button" ],
+                  "requiresDisplay": true,
+                  "bindings": [ { "trigger": "Press", "actionId": "jeffdock.system.cpu" } ],
+                  "iconMode": "Dynamic",
+                  "iconId": "elgato/general/cpu",
+                  "iconForeground": "#54AAFF",
+                  "iconBackground": "#141821"
+                },
+                {
+                  "id": "system.ram",
+                  "name": "RAM Usage",
+                  "description": "Show physical RAM in use as a live percentage, refreshed every second.",
+                  "controlTypes": [ "Button" ],
+                  "requiresDisplay": true,
+                  "bindings": [ { "trigger": "Press", "actionId": "jeffdock.system.ram" } ],
+                  "iconMode": "Dynamic",
+                  "iconId": "core/system/ram",
+                  "iconForeground": "#3AD2A6",
+                  "iconBackground": "#141821"
+                },
                 {
                   "id": "machine.lock",
                   "name": "Lock Computer",

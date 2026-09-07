@@ -10,6 +10,8 @@
         "${workspaceFolder}/JeffDock.App/JeffDock.App.csproj",
         "--configuration",
         "Debug",
+        "--disable-build-servers",
+        "-m:1",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary"
       ],

@@ -66,6 +66,7 @@ If you have an AJAZZ, please feel free to create a discussion so we can add the 
 
 AJeff currently bundles a small set of trusted, in-process plugins:
 
+- **[Image](JeffDock.Plugins/JeffDock.Plugins.Image/README.md)** — displays still artwork without a press action; GIF imports are static.
 - **Mouse Mover** — Simplistic mouse jiggle. Periodically nudges the pointer
 - **Timer** — provides timer actions and visual state.
 - **Fun** (?) — provides a simple built-in game helpers - Dice roller (D6 only at time of writing) and a coin flip.

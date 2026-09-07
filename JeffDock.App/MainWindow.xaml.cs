@@ -598,16 +598,17 @@ public partial class MainWindow : Window
     {
         _ = Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
         {
-            var device = GetSelectedDevice();
-            if (device is null || !DeviceUsesStateSource(device, sourceId))
+            foreach (var device in _monitor.GetConnectedDevices().DistinctBy(device => device.DeviceId)
+                         .Where(device => DeviceUsesStateSource(device, sourceId)))
             {
-                return;
+                if (string.Equals(device.DeviceId, _selectedDeviceId, StringComparison.OrdinalIgnoreCase))
+                {
+                    RefreshButtonIcons();
+                    // State polling must not replace parameter editors while someone is typing.
+                    if (!BindingEditorPanel.IsKeyboardFocusWithin) RefreshBindingEditor();
+                }
+                QueueIconSync(device);
             }
-
-            RefreshButtonIcons();
-            // State polling must not replace parameter editors while someone is typing.
-            if (!BindingEditorPanel.IsKeyboardFocusWithin) RefreshBindingEditor();
-            QueueIconSync(device);
         }));
     }
 
@@ -728,6 +729,12 @@ public partial class MainWindow : Window
 
         _renderedLayout = layout;
         RefreshSelectionVisuals();
+    }
+
+    private void CollapseAllPresetsButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        foreach (var group in PresetPalettePanel.Children.OfType<Expander>())
+            group.IsExpanded = false;
     }
 
     private void BuildPresetPalette()
@@ -1043,7 +1050,7 @@ public partial class MainWindow : Window
         out IReadOnlyList<DeckControlBindingUpdate> updates)
     {
         var result = new List<DeckControlBindingUpdate>();
-        if (!preset.Supports(control.ControlType))
+        if (!preset.Supports(control.ControlType) || (preset.RequiresDisplay && !control.CanHaveIcon))
         {
             updates = result;
             return false;

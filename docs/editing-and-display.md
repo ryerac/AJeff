@@ -14,7 +14,7 @@ With a device control focused:
   configuration. Buttons paste onto buttons and dials onto dials. A configuration
   with artwork requires a control with a display.
 - **Delete** offers to reset the selected control.
-- **Shift+F10** opens the copy/paste context menu, also available by right-click.
+- **Shift+F10** opens the copy/paste/reset context menu, also available by right-click.
 
 Copies are snapshots: editing either control afterwards does not change the
 other. You can paste across scenes and connected devices. The copied

@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\JeffDock.Plugins\JeffDock.Plugins.Image\JeffDock.Plugins.Image.csproj" />
     <Resource Include="Assets\icon.ico" />
     <Resource Include="Assets\logo.png" />
     <Resource Include="Assets\Icons\Packs\**\*.png" />

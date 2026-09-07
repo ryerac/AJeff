@@ -6,6 +6,7 @@ using System.Windows.Media;
 using JeffDock.App.Icons;
 using JeffDock.PluginContracts;
 using JeffDock.Plugins.Game;
+using JeffDock.Plugins.Image;
 using JeffDock.Plugins.MouseMover;
 using JeffDock.Plugins.PiHole;
 using JeffDock.Plugins.System;
@@ -21,6 +22,7 @@ internal sealed class JeffDockPluginLoader
 
     public void LoadAll()
     {
+        LoadBuiltIn(new ImagePlugin());
         LoadBuiltIn(new MouseMoverPlugin());
         LoadBuiltIn(new TimerPlugin());
         LoadBuiltIn(new GamePlugin());
