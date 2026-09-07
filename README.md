@@ -5,7 +5,8 @@
 [![CI](https://github.com/ryerac/AJeff/actions/workflows/ci.yml/badge.svg)](https://github.com/ryerac/AJeff/actions/workflows/ci.yml)
 
 AJeff is a small Windows portable app for configuring AJAZZ macro pads without
-relying on the vendor application. A project born out of an evening of simply not wanting to use the official software.
+relying on the vendor application. A project born out of an evening of simply not wanting to use the official software. 
+For full transparency, this app was heavily human-led, but coded using Codex and similar agents.
 
 It discovers supported devices over USB HID, presents their controls in a visual
 editor, and lets you turn buttons and dials into useful desktop actions.
