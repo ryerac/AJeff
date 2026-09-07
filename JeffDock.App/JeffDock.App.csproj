@@ -9,6 +9,7 @@
     <ProjectReference Include="..\JeffDock.Plugins\JeffDock.Plugins.PiHole\JeffDock.Plugins.PiHole.csproj" />
     <ProjectReference Include="..\JeffDock.Plugins\JeffDock.Plugins.System\JeffDock.Plugins.System.csproj" />
     <PackageReference Include="Svg.Skia" Version="5.2.3" />
+    <PackageReference Include="WPF-UI" Version="4.3.0" />
   </ItemGroup>
 
   <ItemGroup>

@@ -36,19 +36,19 @@ The name is a small chain of wordplay: AJAZZ → jazz → Jazzy Jeff → AJeff. 
 
 ## What it can do
 
-- Detect supported AJAZZ devices over USB HID
-- Configure buttons, dial presses, and dial turns
-- Control speaker volume and speaker or microphone mute state
-- Send media keys and keyboard shortcuts
-- Organise layouts into named scenes and switch between them from the device
-- Choose bundled icons (See credits), recolour SVG icons, or upload your own artwork
-- Show state-aware icons for actions such as mute
-- Copy/paste control configurations and edit controls using the keyboard
-- Set per-device brightness and optional idle dimming or screen-off under Settings
-- Extend the action palette through plugins
-- Optionally start with Windows and launch minimised
+- Configure buttons, dial presses, and dial turns.
+- Assign audio, media, keyboard, system, and scene actions.
+- Create multiple scenes and switch between them from the device.
+- Use bundled, custom, recoloured, and state-aware icons.
+- Copy, paste, reset, and keyboard-edit controls.
+- Manage brightness and automatic display sleep.
+- Monitor live CPU, RAM, and Pi-hole statistics.
+- Use timers, mouse movement, images, dice, and coin-flip plugins.
+- Simulate supported layouts without physical hardware.
+- Store everything locally without an account or cloud service.
 
-AJeff stores bindings and settings locally in a local `%APPDATA%/Jeffdock` folder. Its built-in actions do not require an online account or cloud service.
+Bindings and icons are stored under `%APPDATA%\JeffDock`; application, display,
+and plugin settings are stored under `%LOCALAPPDATA%\JeffDock`.
 
 ## Supported hardware
 
@@ -66,33 +66,31 @@ For UI development without another physical device, open **Settings**, enable
 **Enable simulator tools**, and save the application settings. **Add simulated...**
 then appears below the device list and opens the model menu. The bundled JSON
 catalogue contains AKP153 and AKP03E layouts; **Remove simulated** removes the
-selected simulator for the current run. You can also launch with
-`--simulate-akp153`, choose **AJeff (Simulated AKP153)** in VS Code, or pass
-`--simulate=<catalogue-id>`. Definitions live in
-`JeffDock.App/Assets/Simulation/simulated-devices.json`. Simulators never open a
-USB device or send HID commands. Right-click a simulated control to fire its
-press or encoder action.
+selected simulator for the current run. Simulators never open a USB device or
+send HID commands. Right-click a simulated control to fire its press or encoder
+action.
 
 ## Included plugins
 
 AJeff currently bundles a small set of trusted, in-process plugins:
 
 - **[Image](JeffDock.Plugins/JeffDock.Plugins.Image/README.md)** — displays still artwork without a press action; GIF imports are static.
-- **Mouse Mover** — Simplistic mouse jiggle. Periodically nudges the pointer
-- **Timer** — provides timer actions and visual state.
-- **Fun** (?) — provides a simple built-in game helpers - Dice roller (D6 only at time of writing) and a coin flip.
-- **[Pi-hole Monitor](JeffDock.Plugins/JeffDock.Plugins.PiHole/README.md)** — monitors Pi-hole v6 availability and blocked-query counts for the last 24hr
-- **[System](JeffDock.Plugins/JeffDock.Plugins.System/README.md)** — locks or sleeps Windows and launches apps or trusted commands
+- **Mouse Mover** — toggles configurable periodic pointer movement and shows its current state.
+- **Timer** — runs a configurable countdown with live button artwork.
+- **Fun** — rolls a six-sided die or flips a coin and displays the result.
+- **[Pi-hole Monitor](JeffDock.Plugins/JeffDock.Plugins.PiHole/README.md)** — shows Pi-hole v6 availability and blocked-query counts.
+- **[System](JeffDock.Plugins/JeffDock.Plugins.System/README.md)** — displays CPU and RAM usage, locks or sleeps Windows, and launches apps, files, folders, URLs, or commands.
 
-Plugins run with the same permissions as AJeff. Currently all plugins are part of this repo (Rather than sub-repos), although nothing is stopping someone writing their own - Once the package is published for the interfaces.
+Plugins run with the same permissions as AJeff. The included plugins live in this
+repository; external plugins can also be loaded from `%LOCALAPPDATA%\JeffDock\Plugins`.
 
 ## Project status
 
-AJeff is mostly functional and supports the core workflow: detecting a compatible
-device, assigning actions, managing scenes, updating button artwork, and loading
-plugins. It is still an early-stage project with basic functionality and an
-unstyled, utilitarian user experience. Expect rough edges and changes while the
-interaction model is refined.
+AJeff supports the core workflow: detecting a compatible device, assigning
+actions, managing scenes, updating button artwork, and loading plugins. Its
+interface now uses WPF UI with a themed Fluent shell, while further visual and
+accessibility refinement remains in progress. Expect rough edges and changes
+while the interaction model is refined.
 
 The application currently targets Windows and .NET 10. Hardware behaviour should
 be treated as model-specific; reports from real devices are especially valuable.
@@ -145,8 +143,9 @@ including plugin packaging and user-data locations.
 
 ## FAQ
 
-### Why does it look so bad?
-Its basic. It was mostly made by robots, and WPF doesn't offer the same level as fancy as most modern app development without a lot more effort, simple. I may throw some UX effort in later.
+### Is the interface finished?
+Not yet. AJeff now uses WPF UI and a replaceable theme system, but the visual
+refresh is being delivered in stages while the interaction model settles.
 
 ### Docs/Guides?
 Not yet, its fairly self explanitory but a proper guide is on the cards if anyone actually uses this.
@@ -160,6 +159,8 @@ project structure.
 
 When reporting a hardware issue, include the exact model name and USB VID/PID if
 possible. Avoid posting device serial numbers or other personal information.
+
+Anyone with a real device that operates in the same way, feel free to aid in adding real device configuration options!
 
 ## Acknowledgements
 

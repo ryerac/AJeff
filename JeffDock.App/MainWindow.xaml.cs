@@ -20,7 +20,7 @@ using JeffDock.PluginContracts;
 
 namespace JeffDock.App;
 
-public partial class MainWindow : Window
+public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 {
     private const string PresetDragFormat = "JeffDock.ControlPreset";
     private const string ControlDragFormat = "JeffDock.Control";

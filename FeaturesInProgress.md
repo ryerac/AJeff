@@ -128,3 +128,18 @@ Status: JSON-backed multi-device UI simulator implemented.
 - [x] Never register a USB VID/PID or send HID/display commands for the simulator.
 - [ ] Confirm AKP153 firmware variant, per-key image geometry, transforms, reports,
   and commands on physical hardware before adding real support.
+
+## WPF UI visual refresh
+
+Status: Stage 1 foundation in progress.
+
+- [x] Stage 1: Add WPF UI and apply its Fluent light theme and base control resources.
+- [ ] Stage 1: Review every existing window for layout regressions and tune shared spacing tokens.
+- [x] Stage 2: Convert the main shell to `FluentWindow` with a modern title bar and Mica backdrop.
+- [x] Stage 2: Move the main surfaces to Fluent cards and add simulated-device badges.
+- [ ] Stage 2: Refine connection state, simulator tools, and primary action buttons after visual review.
+- [ ] Stage 3: Rework the device canvas, preset palette, and binding inspector hierarchy.
+- [ ] Stage 4: Migrate Settings and small dialogs to WPF UI cards, toggles, icons, and dialogs.
+- [ ] Stage 5: Add light/dark/system theme selection, polish focus states, and verify accessibility.
+- [x] Add an `IAppTheme` contract and semantic resource dictionaries so colour schemes are replaceable.
+- [ ] Stage 5: Perform a full keyboard, high-DPI, and physical-device regression pass.

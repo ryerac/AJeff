@@ -1,0 +1,24 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Color x:Key="ThemeAccentColor">#D22F3A</Color>
+    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource ThemeAccentColor}" />
+    <SolidColorBrush x:Key="AppBackgroundBrush" Color="#EDF1F7" />
+    <SolidColorBrush x:Key="CardBackgroundBrush" Color="#E8FFFFFF" />
+    <SolidColorBrush x:Key="CardBorderBrush" Color="#668B98AA" />
+    <SolidColorBrush x:Key="MutedTextBrush" Color="#596579" />
+    <SolidColorBrush x:Key="WorkspaceSurfaceBrush" Color="#E8FFFFFF" />
+    <SolidColorBrush x:Key="PaletteSurfaceBrush" Color="#DDF5F8FC" />
+    <SolidColorBrush x:Key="ThemePanelBrush" Color="#BFF3F6FA" />
+    <SolidColorBrush x:Key="ThemeBorderBrush" Color="#708C99AB" />
+    <SolidColorBrush x:Key="SimulatorBadgeBrush" Color="#F8DDE0" />
+    <SolidColorBrush x:Key="SimulatorBadgeTextBrush" Color="#A51F2B" />
+    <LinearGradientBrush x:Key="NavigationSurfaceBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#F5FFFFFF" Offset="0" />
+        <GradientStop Color="#E8F7E9EB" Offset="1" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="TitleBarBrush" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="#F8E9EB" Offset="0" />
+        <GradientStop Color="#F3F5F9" Offset="0.52" />
+        <GradientStop Color="#E7F1FA" Offset="1" />
+    </LinearGradientBrush>
+</ResourceDictionary>
