@@ -12,11 +12,14 @@ public sealed class DeckMonitorService : IDisposable
         public required Task ReadTask { get; set; }
         public Queue<string> LogLines { get; } = new();
         public object LogLock { get; } = new();
-        public object OutputLock { get; } = new();
+        public DeckDisplayController? Display { get; set; }
     }
 
     private readonly IReadOnlyList<IDeckProtocolProfile> _profiles;
     private readonly ConcurrentDictionary<string, Session> _sessions = new();
+    private readonly object _displaySettingsLock = new();
+    private readonly Dictionary<string, DeckDisplaySettings> _displaySettings = new(StringComparer.OrdinalIgnoreCase);
+    private bool _displaysSuspended;
     private readonly int _maxLinesPerDevice;
     private CancellationTokenSource? _scanCts;
     private Task? _scanTask;
@@ -65,109 +68,63 @@ public sealed class DeckMonitorService : IDisposable
         }
     }
 
-    public bool TrySetButtonImages(string deviceId, IReadOnlyDictionary<int, byte[]> jpegImages, int brightness = 80)
+    public void ConfigureDisplay(string deviceId, DeckDisplaySettings settings)
     {
-        var session = _sessions.Values
-            .Where(candidate => string.Equals(candidate.Connection.DeviceId, deviceId, StringComparison.OrdinalIgnoreCase))
-            .Where(candidate => candidate.Connection.Profile is IDeckButtonImageProfile imageProfile
-                                && candidate.Connection.OutputReportLength >= imageProfile.PreferredOutputPacketLength)
-            .OrderByDescending(candidate => candidate.Connection.OutputReportLength)
-            .FirstOrDefault();
-
-        if (session?.Connection.Profile is not IDeckButtonImageProfile profile)
+        settings.Validate();
+        lock (_displaySettingsLock)
         {
-            return false;
+            _displaySettings[deviceId] = settings;
+            foreach (var session in _sessions.Values.Where(session =>
+                         string.Equals(session.Connection.DeviceId, deviceId, StringComparison.OrdinalIgnoreCase)))
+                RunDisplayOperation(session, display => display.Configure(settings, Environment.TickCount64));
         }
+    }
 
+    public bool TrySetButtonImages(string deviceId, IReadOnlyDictionary<int, byte[]> jpegImages)
+    {
+        var session = GetDisplaySessions().FirstOrDefault(candidate =>
+            string.Equals(candidate.Connection.DeviceId, deviceId, StringComparison.OrdinalIgnoreCase));
+        return session is not null && RunDisplayOperation(session, display => display.UpdateImages(jpegImages));
+    }
+
+    private IEnumerable<Session> GetDisplaySessions() => _sessions.Values
+        .Where(session => session.Display is not null)
+        .OrderByDescending(session => session.Connection.OutputReportLength)
+        .ThenBy(session => session.ConnectionKey, StringComparer.OrdinalIgnoreCase)
+        .DistinctBy(session => session.Connection.DeviceId, StringComparer.OrdinalIgnoreCase);
+
+    public void SleepAllDevices()
+    {
+        lock (_displaySettingsLock)
+        {
+            _displaysSuspended = true;
+            foreach (var session in _sessions.Values)
+                RunDisplayOperation(session, display => display.Suspend());
+        }
+    }
+
+    public void WakeAllDevices()
+    {
+        lock (_displaySettingsLock)
+        {
+            _displaysSuspended = false;
+            foreach (var session in _sessions.Values)
+                RunDisplayOperation(session, display => display.Resume(Environment.TickCount64));
+        }
+    }
+
+    private bool RunDisplayOperation(Session session, Action<DeckDisplayController> operation)
+    {
+        if (session.Display is not { } display) return false;
         try
         {
-            lock (session.OutputLock)
-            {
-                foreach (var packet in profile.BuildClearButtonImages())
-                {
-                    session.Connection.Stream.Write(packet);
-                }
-
-                foreach (var (controlIndex, jpegData) in jpegImages.OrderBy(image => image.Key))
-                {
-                    foreach (var packet in profile.BuildButtonImageUpload(controlIndex, jpegData))
-                    {
-                        session.Connection.Stream.Write(packet);
-                    }
-                }
-
-                session.Connection.Stream.Write(profile.BuildBrightnessPacket(brightness));
-            }
-
-            AddLogLine(session, $"updated {jpegImages.Count} button icon(s)");
+            operation(display);
             return true;
         }
         catch (Exception exception) when (exception is IOException or ObjectDisposedException or ArgumentException or TimeoutException)
         {
-            AddLogLine(session, $"button icon update failed: {exception.Message}");
+            AddLogLine(session, $"display update failed: {exception.Message}");
             return false;
-        }
-    }
-
-    public void SleepAllDevices()
-    {
-        foreach (var session in _sessions.Values)
-        {
-            if (session.Connection.Profile is not IDeckButtonImageProfile profile)
-            {
-                continue;
-            }
-
-            try
-            {
-                lock (session.OutputLock)
-                {
-                    foreach (var packet in profile.BuildSleepPackets())
-                    {
-                        session.Connection.Stream.Write(packet);
-                    }
-                }
-
-                AddLogLine(session, "display entered standby");
-            }
-            catch (Exception exception) when (exception is IOException or ObjectDisposedException or TimeoutException)
-            {
-                AddLogLine(session, $"display standby failed: {exception.Message}");
-            }
-        }
-    }
-
-    public void WakeAllDevices(int brightness = 80)
-    {
-        foreach (var session in _sessions.Values)
-        {
-            if (session.Connection.Profile is not IDeckButtonImageProfile profile)
-            {
-                continue;
-            }
-
-            try
-            {
-                lock (session.OutputLock)
-                {
-                    if (session.Connection.Profile.InitializePacket is { } initializePacket)
-                    {
-                        session.Connection.Stream.Write(initializePacket);
-                    }
-
-                    session.Connection.Stream.Write(profile.BuildBrightnessPacket(brightness));
-                    foreach (var packet in profile.BuildClearButtonImages())
-                    {
-                        session.Connection.Stream.Write(packet);
-                    }
-                }
-
-                AddLogLine(session, "display resumed");
-            }
-            catch (Exception exception) when (exception is IOException or ObjectDisposedException or TimeoutException)
-            {
-                AddLogLine(session, $"display resume failed: {exception.Message}");
-            }
         }
     }
 
@@ -201,6 +158,8 @@ public sealed class DeckMonitorService : IDisposable
             try
             {
                 ScanOnce();
+                foreach (var session in GetDisplaySessions())
+                    RunDisplayOperation(session, display => display.Tick(Environment.TickCount64));
             }
             catch
             {
@@ -260,12 +219,27 @@ public sealed class DeckMonitorService : IDisposable
             ReadTask = Task.CompletedTask,
         };
 
-        if (!_sessions.TryAdd(session.ConnectionKey, session))
+        lock (_displaySettingsLock)
         {
-            cts.Cancel();
-            connection.Dispose();
-            cts.Dispose();
-            return;
+            if (connection.Profile is IDeckButtonImageProfile imageProfile
+                && connection.OutputReportLength >= imageProfile.PreferredOutputPacketLength)
+            {
+                var settings = _displaySettings.GetValueOrDefault(connection.DeviceId) ?? new DeckDisplaySettings();
+                session.Display = new DeckDisplayController(connection.Profile,
+                    packet => connection.Stream.Write(packet), settings, Environment.TickCount64);
+                RunDisplayOperation(session, display =>
+                {
+                    if (_displaysSuspended) display.Suspend();
+                    else display.Configure(settings, Environment.TickCount64);
+                });
+            }
+            if (!_sessions.TryAdd(session.ConnectionKey, session))
+            {
+                cts.Cancel();
+                connection.Dispose();
+                cts.Dispose();
+                return;
+            }
         }
 
         session.ReadTask = Task.Run(() => ReadLoop(session));
@@ -295,7 +269,13 @@ public sealed class DeckMonitorService : IDisposable
                 {
                     try
                     {
-                        InputEventReceived?.Invoke(BuildMonitoredDevice(session), evt);
+                        // Some devices expose separate input and output HID interfaces.
+                        // Route all interfaces to the same controller used for artwork
+                        // and idle timing, so one interface cannot sleep an active deck.
+                        var display = GetDisplaySessions().FirstOrDefault(candidate =>
+                            string.Equals(candidate.Connection.DeviceId, session.Connection.DeviceId, StringComparison.OrdinalIgnoreCase))?.Display;
+                        if (display is null || display.HandleInput(evt, Environment.TickCount64))
+                            InputEventReceived?.Invoke(BuildMonitoredDevice(session), evt);
                     }
                     catch (Exception exception)
                     {

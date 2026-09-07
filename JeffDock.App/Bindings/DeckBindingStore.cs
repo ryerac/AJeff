@@ -25,9 +25,9 @@ internal sealed class DeckBindingStore
 
     public event Action<MonitoredDeckDevice>? ActiveSceneChanged;
 
-    public DeckBindingStore()
+    public DeckBindingStore(string? directory = null)
     {
-        var directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JeffDock");
+        directory ??= Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JeffDock");
         Directory.CreateDirectory(directory);
         _filePath = Path.Combine(directory, "bindings.json");
         Load();
@@ -277,6 +277,20 @@ internal sealed class DeckBindingStore
             }
 
             Save();
+        }
+    }
+
+    public IReadOnlyList<DeckControlBindingUpdate> CaptureControl(
+        MonitoredDeckDevice device, DeckControlType controlType, int controlIndex)
+    {
+        lock (_sync)
+        {
+            var triggers = controlType == DeckControlType.Button
+                ? new[] { DeckInputEventType.ButtonPress }
+                : new[] { DeckInputEventType.EncoderTurn, DeckInputEventType.EncoderPress };
+            return triggers.Select(trigger => new DeckControlBindingUpdate(trigger,
+                GetActionId(device, controlType, controlIndex, trigger),
+                GetActionParameters(device, controlType, controlIndex, trigger))).ToArray();
         }
     }
 

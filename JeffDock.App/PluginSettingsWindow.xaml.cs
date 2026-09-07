@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using JeffDock.App.Plugins;
 using JeffDock.App.Settings;
+using JeffDock.Core.Deck;
 using JeffDock.PluginContracts;
 
 namespace JeffDock.App;
@@ -13,14 +14,28 @@ public partial class PluginSettingsWindow : Window
 {
     private readonly JeffDockPluginLoader _loader;
     private readonly ApplicationSettingsStore _applicationSettings = new();
+    private readonly DisplaySettingsStore _displaySettings;
+    private readonly Action<string, DeckDisplaySettings>? _previewDisplay;
+    private string? _previewDeviceId;
+    private bool _loadingDisplaySettings;
     private readonly Dictionary<string, Control> _editors = new(StringComparer.OrdinalIgnoreCase);
     private LoadedPlugin? _selectedPlugin;
     private PluginSettingsStore? _settings;
 
-    internal PluginSettingsWindow(JeffDockPluginLoader loader)
+    internal PluginSettingsWindow(JeffDockPluginLoader loader, DisplaySettingsStore displaySettings,
+        IReadOnlyList<MonitoredDeckDevice> devices, string? selectedDeviceId,
+        Action<string, DeckDisplaySettings>? previewDisplay = null)
     {
+        _displaySettings = displaySettings;
+        _previewDisplay = previewDisplay;
         InitializeComponent();
         _loader = loader;
+        var displayDevices = devices.Where(device => device.Layout.Controls.Any(control => control.CanHaveIcon)).ToList();
+        DisplayDeviceComboBox.ItemsSource = displayDevices;
+        DisplayDeviceComboBox.SelectedItem = displayDevices.FirstOrDefault(device => device.DeviceId == selectedDeviceId)
+            ?? displayDevices.FirstOrDefault();
+        DisplayControlsPanel.IsEnabled = displayDevices.Count > 0;
+        NoDisplayDeviceText.Visibility = displayDevices.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         StartWithWindowsCheckBox.IsChecked = _applicationSettings.StartWithWindows;
         StartMinimizedCheckBox.IsChecked = _applicationSettings.StartMinimized;
         UpdateStartMinimizedAvailability();
@@ -31,6 +46,68 @@ public partial class PluginSettingsWindow : Window
         {
             PluginTitle.Text = "No plugins loaded";
             SaveButton.IsEnabled = EditJsonButton.IsEnabled = false;
+        }
+    }
+
+    private void DisplayDeviceComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        RestoreBrightnessPreview();
+        if (DisplayDeviceComboBox.SelectedItem is not MonitoredDeckDevice device) return;
+        var settings = _displaySettings.Get(device.DeviceId);
+        _loadingDisplaySettings = true;
+        try { BrightnessSlider.Value = settings.Brightness; }
+        finally { _loadingDisplaySettings = false; }
+        DisplaySleepCheckBox.IsChecked = settings.SleepEnabled;
+        SleepMinutesTextBox.Text = settings.SleepMinutes.ToString(CultureInfo.InvariantCulture);
+        SleepBehaviourComboBox.SelectedIndex = (int)settings.SleepBehaviour;
+        DisplaySleepOptionsPanel.IsEnabled = settings.SleepEnabled;
+    }
+
+    private void BrightnessSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_loadingDisplaySettings || _previewDisplay is null
+            || DisplayDeviceComboBox?.SelectedItem is not MonitoredDeckDevice device) return;
+        _previewDeviceId = device.DeviceId;
+        // Only preview brightness; unsaved sleep settings stay in the editor.
+        _previewDisplay(device.DeviceId, _displaySettings.Get(device.DeviceId) with { Brightness = (int)e.NewValue });
+    }
+
+    private void RestoreBrightnessPreview()
+    {
+        if (_previewDeviceId is not { } deviceId) return;
+        _previewDeviceId = null;
+        _previewDisplay?.Invoke(deviceId, _displaySettings.Get(deviceId));
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        RestoreBrightnessPreview();
+        base.OnClosed(e);
+    }
+
+    private void DisplaySleepCheckBox_OnChanged(object sender, RoutedEventArgs e)
+    {
+        if (DisplaySleepOptionsPanel is not null)
+            DisplaySleepOptionsPanel.IsEnabled = DisplaySleepCheckBox.IsChecked == true;
+    }
+
+    private void SaveDisplaySettingsButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (DisplayDeviceComboBox.SelectedItem is not MonitoredDeckDevice device) return;
+        try
+        {
+            var enabled = DisplaySleepCheckBox.IsChecked == true;
+            var minutes = _displaySettings.Get(device.DeviceId).SleepMinutes;
+            if (enabled && (!int.TryParse(SleepMinutesTextBox.Text, out minutes) || minutes is < 1 or > 1440))
+                throw new ArgumentException("Enter a sleep timeout between 1 and 1440 minutes.");
+            _displaySettings.Save(device.DeviceId, new DeckDisplaySettings((int)BrightnessSlider.Value,
+                enabled, minutes, (DeckSleepBehaviour)SleepBehaviourComboBox.SelectedIndex));
+            _previewDeviceId = null;
+            MessageBox.Show(this, "Display settings saved.", "AJeff", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception exception) when (exception is ArgumentException or IOException or UnauthorizedAccessException)
+        {
+            MessageBox.Show(this, exception.Message, "Could not save display settings", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 

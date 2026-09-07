@@ -1,10 +1,12 @@
 <Window x:Class="JeffDock.App.PluginSettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="AJeff Settings" Width="760" Height="720" MinWidth="650" MinHeight="620"
+        Title="AJeff Settings" Width="760" Height="880" MinWidth="700" MinHeight="780"
         WindowStartupLocation="CenterOwner" Background="{StaticResource AppBackgroundBrush}">
     <Grid Margin="12">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="12" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="12" />
             <RowDefinition Height="*" />
@@ -36,7 +38,46 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}">
+        <Border Grid.Row="2" Grid.ColumnSpan="3" Style="{StaticResource CardBorderStyle}">
+            <StackPanel>
+                <TextBlock Text="Display" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
+                <ComboBox x:Name="DisplayDeviceComboBox" DisplayMemberPath="DisplayName"
+                          AutomationProperties.Name="Device for display settings"
+                          SelectionChanged="DisplayDeviceComboBox_OnSelectionChanged" />
+                <TextBlock x:Name="NoDisplayDeviceText" Text="Connect a supported device to configure its display."
+                           Margin="0,5,0,0" Visibility="Collapsed" />
+                <StackPanel x:Name="DisplayControlsPanel" Margin="0,8,0,0">
+                    <DockPanel>
+                        <TextBlock Text="Brightness" Width="100" VerticalAlignment="Center" />
+                        <TextBlock DockPanel.Dock="Right" Width="50" TextAlignment="Right"
+                                   Text="{Binding ElementName=BrightnessSlider, Path=Value, StringFormat={}{0:0}%}" />
+                        <Slider x:Name="BrightnessSlider" Minimum="1" Maximum="100" TickFrequency="1"
+                                ValueChanged="BrightnessSlider_OnValueChanged"
+                                IsSnapToTickEnabled="True" SmallChange="1" LargeChange="10"
+                                AutomationProperties.Name="Display brightness percent" />
+                    </DockPanel>
+                    <CheckBox x:Name="DisplaySleepCheckBox" Content="Sleep display after deck inactivity"
+                              Margin="0,10,0,6" Checked="DisplaySleepCheckBox_OnChanged"
+                              Unchecked="DisplaySleepCheckBox_OnChanged" />
+                    <StackPanel x:Name="DisplaySleepOptionsPanel" Orientation="Horizontal" Margin="22,0,0,0">
+                        <TextBox x:Name="SleepMinutesTextBox" Width="65" VerticalContentAlignment="Center"
+                                 AutomationProperties.Name="Sleep timeout in minutes" />
+                        <TextBlock Text="minutes (1–1440)" Margin="7,0,18,0" VerticalAlignment="Center" />
+                        <ComboBox x:Name="SleepBehaviourComboBox" Width="145" SelectedIndex="0"
+                                  AutomationProperties.Name="Display sleep behaviour">
+                            <ComboBoxItem Content="Dim to lowest" />
+                            <ComboBoxItem Content="Screen off" />
+                        </ComboBox>
+                    </StackPanel>
+                    <TextBlock Text="The first button press or dial turn wakes the display without running an action."
+                               TextWrapping="Wrap" Margin="0,8,0,0" Foreground="#666" />
+                    <Button Content="Save display settings" HorizontalAlignment="Right" Margin="0,8,0,0"
+                            Click="SaveDisplaySettingsButton_OnClick" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="4" Style="{StaticResource CardBorderStyle}">
             <DockPanel>
                 <TextBlock DockPanel.Dock="Top" Text="Installed Plugins" FontSize="16" FontWeight="SemiBold" Margin="4,4,4,8" />
                 <ListBox x:Name="PluginList" SelectionChanged="PluginList_OnSelectionChanged">
@@ -52,11 +93,11 @@
             </DockPanel>
         </Border>
 
-        <Border Grid.Row="2" Grid.Column="2" Style="{StaticResource CardBorderStyle}">
+        <Border Grid.Row="4" Grid.Column="2" Style="{StaticResource CardBorderStyle}">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
                     <Button x:Name="EditJsonButton" Content="Advanced: Edit JSON..." Padding="12,5" Click="EditJsonButton_OnClick" />
-                    <Button x:Name="SaveButton" Content="Save" Padding="18,5" Margin="8,0,0,0" IsDefault="True" Click="SaveButton_OnClick" />
+                    <Button x:Name="SaveButton" Content="Save" Padding="18,5" Margin="8,0,0,0" Click="SaveButton_OnClick" />
                     <Button Content="Close" Padding="18,5" Margin="8,0,0,0" IsCancel="True" />
                 </StackPanel>
                 <ScrollViewer VerticalScrollBarVisibility="Auto">

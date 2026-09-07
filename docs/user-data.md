@@ -21,6 +21,9 @@ created when settings are first saved.
 `%LOCALAPPDATA%\JeffDock\application-settings.json` contains application-level
 preferences such as whether automatic launches start minimised.
 
+`%LOCALAPPDATA%\JeffDock\display-settings.json` contains per-device brightness,
+optional idle sleep timeout, and dim/screen-off preferences.
+
 `%LOCALAPPDATA%\JeffDock\Plugins` is the optional external-plugin location. It
 is inspected when AJeff starts but is not created automatically.
 

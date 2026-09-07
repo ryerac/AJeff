@@ -30,3 +30,6 @@ jobs:
 
       - name: Run tests
         run: dotnet test .\JeffDock.Core.Tests\JeffDock.Core.Tests.csproj --configuration Release
+
+      - name: Run application tests
+        run: dotnet test .\JeffDock.App.Tests\JeffDock.App.Tests.csproj --configuration Release

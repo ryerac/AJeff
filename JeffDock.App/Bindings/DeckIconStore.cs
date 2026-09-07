@@ -13,9 +13,9 @@ internal sealed class DeckIconStore
 
     private readonly string _rootDirectory;
 
-    public DeckIconStore()
+    public DeckIconStore(string? rootDirectory = null)
     {
-        _rootDirectory = Path.Combine(
+        _rootDirectory = rootDirectory ?? Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "JeffDock");
     }
@@ -132,6 +132,51 @@ internal sealed class DeckIconStore
         {
             Directory.CreateDirectory(iconDirectory);
             Directory.Move(sourceStateDirectory, targetStateDirectory);
+        }
+    }
+
+    public ControlIconSnapshot CaptureControlIcons(string deviceId, string sceneId, int buttonIndex)
+    {
+        var staticPath = FindIconPath(deviceId, sceneId, buttonIndex);
+        var stateDirectory = Path.Combine(GetIconDirectory(deviceId, sceneId), buttonIndex.ToString());
+        var states = Directory.Exists(stateDirectory)
+            ? Directory.EnumerateFiles(stateDirectory, "*.jpg").ToDictionary(
+                path => Path.GetFileName(path), File.ReadAllBytes, StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+        return new ControlIconSnapshot(staticPath is null ? null : File.ReadAllBytes(staticPath), states);
+    }
+
+    public void ReplaceControlIcons(string deviceId, string sceneId, int buttonIndex, ControlIconSnapshot snapshot)
+    {
+        var staticPath = GetIconPath(deviceId, sceneId, buttonIndex);
+        var stateDirectory = Path.Combine(GetIconDirectory(deviceId, sceneId), buttonIndex.ToString());
+        foreach (var name in snapshot.StateImages.Keys)
+            if (Path.GetFileName(name) != name || !name.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
+                || name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+                throw new ArgumentException("Invalid state icon filename.");
+
+        // Copy exact JPEG bytes, including filenames already hashed from state IDs.
+        if (snapshot.StaticImage is { } bytes) WriteIconBytes(staticPath, bytes);
+        else if (File.Exists(staticPath)) File.Delete(staticPath);
+        foreach (var (name, image) in snapshot.StateImages)
+            WriteIconBytes(Path.Combine(stateDirectory, name), image);
+        if (Directory.Exists(stateDirectory))
+            foreach (var path in Directory.EnumerateFiles(stateDirectory, "*.jpg"))
+                if (!snapshot.StateImages.ContainsKey(Path.GetFileName(path))) File.Delete(path);
+    }
+
+    private static void WriteIconBytes(string path, byte[] bytes)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var temporary = path + ".tmp";
+        try
+        {
+            File.WriteAllBytes(temporary, bytes);
+            File.Move(temporary, path, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(temporary)) File.Delete(temporary);
         }
     }
 

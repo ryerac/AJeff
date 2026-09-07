@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.ComponentModel;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -10,6 +11,9 @@ using JeffDock.App.Bindings.Core;
 using JeffDock.App.Icons;
 using JeffDock.App.Presets;
 using JeffDock.App.Plugins;
+using JeffDock.App.Settings;
+using JeffDock.App.Controls;
+using System.Windows.Automation;
 using JeffDock.Core.Deck;
 using JeffDock.PluginContracts;
 
@@ -27,6 +31,7 @@ public partial class MainWindow : Window
     private readonly DeckActionExecutor _actionExecutor;
     private readonly DeckPresetCatalog _presetCatalog;
     private readonly JeffDockPluginLoader _pluginLoader;
+    private readonly DisplaySettingsStore _displaySettings = new();
     private readonly Dictionary<(DeckControlType ControlType, int ControlIndex), Border> _controlVisuals = new();
     private readonly Dictionary<(DeckControlType ControlType, int ControlIndex), DeckControlLayout> _controlLayouts = new();
     private readonly Dictionary<Border, Brush> _idleBrushes = new();
@@ -37,6 +42,7 @@ public partial class MainWindow : Window
     private string? _selectedDeviceId;
     private bool _isUpdatingBindingEditor;
     private bool _isUpdatingSceneEditor;
+    private bool _isSessionEnding;
     private int _decksSleeping;
     private Point? _controlDragStart;
     private DeckControlLayout? _controlDragSource;
@@ -56,6 +62,9 @@ public partial class MainWindow : Window
         _actionExecutor = new DeckActionExecutor(_actionCatalog);
         _presetCatalog = new DeckPresetCatalog(_pluginLoader.Registry.PresetJson);
         _monitor = new DeckMonitorService(DeckProfileCatalog.SupportedProfiles, maxLinesPerDevice: 100);
+        foreach (var (deviceId, settings) in _displaySettings.Devices)
+            _monitor.ConfigureDisplay(deviceId, settings);
+        _displaySettings.Changed += _monitor.ConfigureDisplay;
         _monitor.DevicesChanged += OnDevicesChanged;
         _monitor.DeviceLogChanged += OnDeviceLogChanged;
         _monitor.InputEventReceived += OnInputEventReceived;
@@ -75,6 +84,7 @@ public partial class MainWindow : Window
         _monitor.DevicesChanged -= OnDevicesChanged;
         _monitor.DeviceLogChanged -= OnDeviceLogChanged;
         _monitor.InputEventReceived -= OnInputEventReceived;
+        _displaySettings.Changed -= _monitor.ConfigureDisplay;
         _bindingStore.ActiveSceneChanged -= OnActiveSceneChanged;
         _actionCatalog.StateCatalog.StateChanged -= OnDeckStateChanged;
         _monitor.Dispose();
@@ -82,13 +92,34 @@ public partial class MainWindow : Window
         base.OnClosed(e);
     }
 
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        if (!_isSessionEnding
+            && MessageBox.Show(
+                this,
+                "Closing AJeff will stop all dock interactivity. Do you want to close it?",
+                "Close AJeff?",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No) != MessageBoxResult.Yes)
+        {
+            e.Cancel = true;
+        }
+
+        base.OnClosing(e);
+    }
+
     private void PluginSettingsButton_OnClick(object sender, RoutedEventArgs e)
     {
-        new PluginSettingsWindow(_pluginLoader) { Owner = this }.ShowDialog();
+        new PluginSettingsWindow(_pluginLoader, _displaySettings,
+            _monitor.GetConnectedDevices().DistinctBy(device => device.DeviceId).ToList(), _selectedDeviceId,
+            _monitor.ConfigureDisplay)
+            { Owner = this }.ShowDialog();
     }
 
     private void OnSessionEnding(object sender, SessionEndingCancelEventArgs e)
     {
+        _isSessionEnding = true;
         SleepDecks();
     }
 
@@ -574,7 +605,8 @@ public partial class MainWindow : Window
             }
 
             RefreshButtonIcons();
-            RefreshBindingEditor();
+            // State polling must not replace parameter editors while someone is typing.
+            if (!BindingEditorPanel.IsKeyboardFocusWithin) RefreshBindingEditor();
             QueueIconSync(device);
         }));
     }
@@ -676,6 +708,7 @@ public partial class MainWindow : Window
         {
             var border = BuildControlVisual(control);
             border.Tag = control;
+            ConfigureControlAccessibility(border, control);
             border.AllowDrop = true;
             border.PreviewMouseLeftButtonDown += ControlBorder_OnPreviewMouseLeftButtonDown;
             border.PreviewMouseMove += ControlBorder_OnPreviewMouseMove;
@@ -709,7 +742,7 @@ public partial class MainWindow : Window
             var contents = new StackPanel();
             foreach (var preset in section.Presets)
             {
-                var item = new Border
+                var item = new DeckControlBorder
                 {
                     Tag = preset,
                     Margin = new Thickness(0, 0, 0, 8),
@@ -721,6 +754,21 @@ public partial class MainWindow : Window
                     Cursor = Cursors.Hand,
                     ToolTip = preset.Description,
                     Child = BuildPresetPaletteItem(preset, pluginIcon),
+                    Focusable = true,
+                };
+                AutomationProperties.SetName(item, preset.Name);
+                AutomationProperties.SetHelpText(item, "Press Enter to apply this preset to the selected compatible control.");
+                item.GotKeyboardFocus += (_, _) => { item.BorderBrush = SystemColors.HighlightBrush; item.BorderThickness = new Thickness(3); };
+                item.LostKeyboardFocus += (_, _) => { item.BorderBrush = CreateBrush("#E1E5EC"); item.BorderThickness = new Thickness(1); };
+                item.KeyDown += (sender, e) =>
+                {
+                    if (e.Key is not (Key.Enter or Key.Space) || Keyboard.Modifiers != ModifierKeys.None) return;
+                    if (_selectedControl is { } selected && _controlLayouts.TryGetValue(selected, out var control))
+                    {
+                        if (CanApplyPreset(preset, control, out _)) ApplyPresetToControl(control, preset);
+                        else EditingStatusText.Text = "Select a compatible control before applying this preset.";
+                    }
+                    e.Handled = true;
                 };
                 item.PreviewMouseMove += PresetItem_OnPreviewMouseMove;
                 contents.Children.Add(item);
@@ -831,13 +879,15 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (sender is not Border { Tag: DeckControlLayout control }
-            || !TryGetDraggedPreset(e.Data, out var preset)
-            || !CanApplyPreset(preset, control, out var updates)
-            || GetSelectedDevice() is not { } device)
-        {
-            return;
-        }
+        if (sender is Border { Tag: DeckControlLayout control }
+            && TryGetDraggedPreset(e.Data, out var preset))
+            ApplyPresetToControl(control, preset);
+        e.Handled = true;
+    }
+
+    private void ApplyPresetToControl(DeckControlLayout control, DeckControlPreset preset)
+    {
+        if (!CanApplyPreset(preset, control, out var updates) || GetSelectedDevice() is not { } device) return;
 
         var triggers = control.ControlType == DeckControlType.Button
             ? new[] { DeckInputEventType.ButtonPress }
@@ -1061,14 +1111,13 @@ public partial class MainWindow : Window
 
     private void ControlBorder_OnMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
-        if (sender is not Border { Tag: DeckControlLayout control })
+        if (sender is not Border { Tag: DeckControlLayout control } border)
         {
             return;
         }
 
-        _selectedControl = (control.ControlType, control.ControlIndex);
-        RefreshSelectionVisuals();
-        RefreshBindingEditor();
+        border.Focus();
+        SelectControl(control);
     }
 
     private void ResetControlButton_OnClick(object sender, RoutedEventArgs e)
@@ -1118,8 +1167,10 @@ public partial class MainWindow : Window
         foreach (var (key, border) in _controlVisuals)
         {
             var isSelected = _selectedControl is { } selectedControl && selectedControl == key;
-            border.BorderBrush = isSelected ? CreateBrush("#C96F1A") : CreateBrush("#777777");
-            border.BorderThickness = new Thickness(key.ControlType == DeckControlType.Encoder ? (isSelected ? 4 : 2) : (isSelected ? 3 : 1));
+            border.BorderBrush = border.IsKeyboardFocused ? SystemColors.HighlightBrush
+                : isSelected ? CreateBrush("#C96F1A") : CreateBrush("#777777");
+            border.BorderThickness = new Thickness(border.IsKeyboardFocused ? 5
+                : key.ControlType == DeckControlType.Encoder ? (isSelected ? 4 : 2) : (isSelected ? 3 : 1));
         }
     }
 
@@ -1334,10 +1385,12 @@ public partial class MainWindow : Window
             });
 
             var libraryButton = new Button { Content = "Library...", Tag = state, Padding = new Thickness(8, 3, 8, 3) };
+            AutomationProperties.SetName(libraryButton, $"Choose icon for {state.DisplayName}");
             libraryButton.Click += DynamicStateLibraryButton_OnClick;
             row.Children.Add(libraryButton);
 
             var uploadButton = new Button { Content = "Upload...", Tag = state, Margin = new Thickness(6, 0, 0, 0), Padding = new Thickness(8, 3, 8, 3) };
+            AutomationProperties.SetName(uploadButton, $"Upload icon for {state.DisplayName}");
             uploadButton.Click += DynamicStateUploadButton_OnClick;
             row.Children.Add(uploadButton);
 
@@ -1350,6 +1403,7 @@ public partial class MainWindow : Window
                 IsEnabled = customPath is not null,
             };
             removeButton.Click += DynamicStateRemoveButton_OnClick;
+            AutomationProperties.SetName(removeButton, $"Reset icon for {state.DisplayName}");
             row.Children.Add(removeButton);
             DynamicIconStatesPanel.Children.Add(row);
         }
@@ -1390,6 +1444,8 @@ public partial class MainWindow : Window
                 _ => new TextBox { Text = storedValue ?? definition.DefaultValue, Width = 85, Margin = new Thickness(8, 0, 0, 0) },
             };
             var overrideBox = new CheckBox { Content = "Override", IsChecked = hasOverride, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+            AutomationProperties.SetName(editor, definition.DisplayName);
+            AutomationProperties.SetName(overrideBox, $"Override {definition.DisplayName}");
             editor.IsEnabled = hasOverride;
             overrideBox.Checked += (_, _) => editor.IsEnabled = true;
             overrideBox.Unchecked += (_, _) => editor.IsEnabled = false;
@@ -1582,7 +1638,7 @@ public partial class MainWindow : Window
 
         var borderThickness = control.VisualKind == DeckControlVisualKind.Knob ? 2.0 : 1.0;
 
-        return new Border
+        return new DeckControlBorder
         {
             Width = control.Width,
             Height = control.Height,

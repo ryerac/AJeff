@@ -92,6 +92,13 @@ dotnet restore .\JeffDock.Core.Tests\JeffDock.Core.Tests.csproj --configfile .\n
 dotnet test .\JeffDock.Core.Tests\JeffDock.Core.Tests.csproj --no-restore
 ```
 
+Run application tests (isolated bindings, artwork, display settings, and WPF checks):
+
+```powershell
+dotnet restore .\JeffDock.App.Tests\JeffDock.App.Tests.csproj --configfile .\nuget.config
+dotnet test .\JeffDock.App.Tests\JeffDock.App.Tests.csproj --no-restore
+```
+
 ## Architecture Rules
 
 Keep these boundaries intact:

@@ -43,6 +43,8 @@ The name is a small chain of wordplay: AJAZZ → jazz → Jazzy Jeff → AJeff. 
 - Organise layouts into named scenes and switch between them from the device
 - Choose bundled icons (See credits), recolour SVG icons, or upload your own artwork
 - Show state-aware icons for actions such as mute
+- Copy/paste control configurations and edit controls using the keyboard
+- Set per-device brightness and optional idle dimming or screen-off under Settings
 - Extend the action palette through plugins
 - Optionally start with Windows and launch minimised
 

@@ -31,25 +31,39 @@
         </Border>
 
         <Border Grid.Column="2" Style="{StaticResource CardBorderStyle}">
-            <DockPanel>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="80" />
+                </Grid.RowDefinitions>
                 <TextBlock x:Name="SelectedDeviceTitle"
-                           DockPanel.Dock="Top"
+                           Grid.Row="0"
                            Text="Device"
                            FontSize="16"
                            FontWeight="SemiBold"
                            Margin="0,0,0,12" />
 
-                <Border DockPanel.Dock="Top" BorderBrush="#E6E9EF" BorderThickness="1" CornerRadius="10" Padding="12" Margin="0,0,0,12" Background="#F8FAFC">
+                <Border Grid.Row="1" BorderBrush="#E6E9EF" BorderThickness="1" CornerRadius="10" Padding="12" Margin="0,0,0,12" Background="#F8FAFC">
                     <Viewbox Height="230" Stretch="Uniform" HorizontalAlignment="Left">
                         <Canvas x:Name="FaceplateCanvas" Width="460" Height="220" />
                     </Viewbox>
                 </Border>
 
-                <Border DockPanel.Dock="Top" BorderBrush="#E6E9EF" BorderThickness="1" CornerRadius="10" Padding="14" Margin="0,0,0,12" Background="#F8FAFC">
+                <TextBlock x:Name="EditingStatusText" Grid.Row="2" TextWrapping="Wrap"
+                           Text="Arrow keys select controls. Enter edits. Ctrl+C / Ctrl+V copies and pastes within AJeff."
+                           AutomationProperties.LiveSetting="Polite" Margin="0,0,0,8" />
+
+                <Border x:Name="BindingEditorPanel" Grid.Row="3" BorderBrush="#E6E9EF" BorderThickness="1" CornerRadius="10" Padding="14" Margin="0,0,0,12" Background="#F8FAFC">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Focusable="False">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                             <TextBlock Text="Scene" Width="100" VerticalAlignment="Center" />
                             <ComboBox x:Name="SceneComboBox"
+                                      AutomationProperties.Name="Scene"
                                       Width="180"
                                       DisplayMemberPath="Name"
                                       SelectionChanged="SceneComboBox_OnSelectionChanged" />
@@ -86,6 +100,7 @@
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="Icon" Width="100" VerticalAlignment="Center" />
                                 <ComboBox x:Name="IconModeComboBox"
+                                          AutomationProperties.Name="Icon mode"
                                           Width="110"
                                           SelectionChanged="IconModeComboBox_OnSelectionChanged" />
                             </StackPanel>
@@ -108,10 +123,12 @@
                         <StackPanel x:Name="TurnBindingRow" Orientation="Horizontal" Margin="0,0,0,8" Visibility="Collapsed">
                             <TextBlock Text="Turn Action" Width="100" VerticalAlignment="Center" />
                             <ComboBox x:Name="TurnActionGroupComboBox"
+                                      AutomationProperties.Name="Dial turn action group"
                                       Width="110"
                                       DisplayMemberPath="DisplayName"
                                       SelectionChanged="TurnActionGroupComboBox_OnSelectionChanged" />
                             <ComboBox x:Name="TurnActionComboBox"
+                                      AutomationProperties.Name="Dial turn action"
                                       Width="160"
                                       Margin="8,0,0,0"
                                       DisplayMemberPath="DisplayName"
@@ -121,10 +138,12 @@
                         <StackPanel x:Name="PressBindingRow" Orientation="Horizontal" Visibility="Collapsed">
                             <TextBlock x:Name="PressBindingLabel" Text="Press Action" Width="100" VerticalAlignment="Center" />
                             <ComboBox x:Name="PressActionGroupComboBox"
+                                      AutomationProperties.Name="Press action group"
                                       Width="110"
                                       DisplayMemberPath="DisplayName"
                                       SelectionChanged="PressActionGroupComboBox_OnSelectionChanged" />
                             <ComboBox x:Name="PressActionComboBox"
+                                      AutomationProperties.Name="Press action"
                                       Width="160"
                                       Margin="8,0,0,0"
                                       DisplayMemberPath="DisplayName"
@@ -169,9 +188,10 @@
                             </StackPanel>
                         </Border>
                     </StackPanel>
+                    </ScrollViewer>
                 </Border>
 
-                <DockPanel DockPanel.Dock="Top" Margin="2,0,2,7">
+                <DockPanel Grid.Row="4" Margin="2,0,2,7">
                     <TextBlock DockPanel.Dock="Right"
                                Text="Latest 100 lines"
                                Foreground="{StaticResource MutedTextBrush}"
@@ -180,17 +200,18 @@
                 </DockPanel>
 
                 <ListBox x:Name="LogListBox"
+                         Grid.Row="5"
                          FontFamily="Consolas"
                          FontSize="12"
                          HorizontalContentAlignment="Stretch" />
-            </DockPanel>
+            </Grid>
         </Border>
 
         <Border Grid.Column="4" Style="{StaticResource CardBorderStyle}">
             <DockPanel>
                 <TextBlock DockPanel.Dock="Top" Text="Presets" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,5" />
                 <TextBlock DockPanel.Dock="Top"
-                           Text="Drag a preset onto a compatible control."
+                           Text="Drag a preset onto a compatible control, or focus a preset and press Enter to apply it to the selected control."
                            TextWrapping="Wrap"
                            Foreground="{StaticResource MutedTextBrush}"
                            Margin="0,0,0,12" />
