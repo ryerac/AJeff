@@ -30,7 +30,8 @@ public partial class PluginSettingsWindow : Window
         _previewDisplay = previewDisplay;
         InitializeComponent();
         _loader = loader;
-        var displayDevices = devices.Where(device => device.Layout.Controls.Any(control => control.CanHaveIcon)).ToList();
+        var displayDevices = devices.Where(device => !device.IsSimulated
+            && device.Layout.Controls.Any(control => control.CanHaveIcon)).ToList();
         DisplayDeviceComboBox.ItemsSource = displayDevices;
         DisplayDeviceComboBox.SelectedItem = displayDevices.FirstOrDefault(device => device.DeviceId == selectedDeviceId)
             ?? displayDevices.FirstOrDefault();
@@ -38,6 +39,7 @@ public partial class PluginSettingsWindow : Window
         NoDisplayDeviceText.Visibility = displayDevices.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         StartWithWindowsCheckBox.IsChecked = _applicationSettings.StartWithWindows;
         StartMinimizedCheckBox.IsChecked = _applicationSettings.StartMinimized;
+        EnableSimulatorsCheckBox.IsChecked = _applicationSettings.EnableSimulators;
         UpdateStartMinimizedAvailability();
         PluginList.ItemsSource = loader.Plugins;
         DiagnosticsText.Text = string.Join(Environment.NewLine, loader.Diagnostics);
@@ -128,7 +130,8 @@ public partial class PluginSettingsWindow : Window
         {
             _applicationSettings.Save(
                 StartWithWindowsCheckBox.IsChecked == true,
-                StartMinimizedCheckBox.IsChecked == true);
+                StartMinimizedCheckBox.IsChecked == true,
+                EnableSimulatorsCheckBox.IsChecked == true);
             MessageBox.Show(this, "Application settings saved.", "AJeff", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception exception) when (exception is IOException

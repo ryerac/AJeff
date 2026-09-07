@@ -12,6 +12,7 @@ using JeffDock.App.Icons;
 using JeffDock.App.Presets;
 using JeffDock.App.Plugins;
 using JeffDock.App.Settings;
+using JeffDock.App.Simulation;
 using JeffDock.App.Controls;
 using System.Windows.Automation;
 using JeffDock.Core.Deck;
@@ -32,6 +33,9 @@ public partial class MainWindow : Window
     private readonly DeckPresetCatalog _presetCatalog;
     private readonly JeffDockPluginLoader _pluginLoader;
     private readonly DisplaySettingsStore _displaySettings = new();
+    private readonly ApplicationSettingsStore _applicationSettings = new();
+    private readonly SimulatedDeckCatalog _simulatedDeckCatalog = new();
+    private readonly List<MonitoredDeckDevice> _simulatedDevices = [];
     private readonly Dictionary<(DeckControlType ControlType, int ControlIndex), Border> _controlVisuals = new();
     private readonly Dictionary<(DeckControlType ControlType, int ControlIndex), DeckControlLayout> _controlLayouts = new();
     private readonly Dictionary<Border, Brush> _idleBrushes = new();
@@ -47,9 +51,17 @@ public partial class MainWindow : Window
     private Point? _controlDragStart;
     private DeckControlLayout? _controlDragSource;
 
-    public MainWindow()
+    public MainWindow(IEnumerable<string>? simulatedDeviceIds = null)
     {
         InitializeComponent();
+        foreach (var definitionId in simulatedDeviceIds ?? [])
+        {
+            if (_simulatedDevices.All(device => !string.Equals(device.DeviceId, $"simulation:{definitionId}", StringComparison.OrdinalIgnoreCase)))
+                _simulatedDevices.Add(_simulatedDeckCatalog.Create(definitionId));
+        }
+        SimulatorToolsPanel.Visibility = _applicationSettings.EnableSimulators || _simulatedDevices.Count > 0
+            ? Visibility.Visible
+            : Visibility.Collapsed;
 
         _bindingStore = new DeckBindingStore();
         _iconStore = new DeckIconStore();
@@ -112,9 +124,20 @@ public partial class MainWindow : Window
     private void PluginSettingsButton_OnClick(object sender, RoutedEventArgs e)
     {
         new PluginSettingsWindow(_pluginLoader, _displaySettings,
-            _monitor.GetConnectedDevices().DistinctBy(device => device.DeviceId).ToList(), _selectedDeviceId,
+            GetAvailableDevices(), _selectedDeviceId,
             _monitor.ConfigureDisplay)
             { Owner = this }.ShowDialog();
+        ApplySimulatorToolsSetting();
+    }
+
+    private void ApplySimulatorToolsSetting()
+    {
+        var enabled = new ApplicationSettingsStore().EnableSimulators;
+        SimulatorToolsPanel.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
+        if (enabled || _simulatedDevices.Count == 0) return;
+        _simulatedDevices.Clear();
+        _selectedDeviceId = null;
+        RefreshUi();
     }
 
     private void OnSessionEnding(object sender, SessionEndingCancelEventArgs e)
@@ -139,7 +162,7 @@ public partial class MainWindow : Window
         _monitor.WakeAllDevices();
         _ = Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
         {
-            foreach (var device in _monitor.GetConnectedDevices().DistinctBy(device => device.DeviceId))
+            foreach (var device in GetAvailableDevices())
             {
                 QueueIconSync(device);
             }
@@ -157,6 +180,7 @@ public partial class MainWindow : Window
     private void DevicesListBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         var device = DevicesListBox.SelectedItem as MonitoredDeckDevice;
+        RemoveSimulatedDeviceButton.IsEnabled = device?.IsSimulated == true;
         _selectedDeviceId = device?.DeviceId;
         if (device is not null)
         {
@@ -168,6 +192,35 @@ public partial class MainWindow : Window
         RefreshButtonIcons();
         RefreshBindingEditor();
         RefreshLogs();
+    }
+
+    private void AddSimulatedDeviceButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        var activeIds = _simulatedDevices.Select(device => device.DeviceId).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var available = _simulatedDeckCatalog.Definitions
+            .Where(definition => !activeIds.Contains($"simulation:{definition.Id}"))
+            .ToList();
+        if (available.Count == 0)
+        {
+            MessageBox.Show(this, "All simulated device models are already active.", "Add simulated device",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var dialog = new SimulatedDeviceDialog(available) { Owner = this };
+        if (dialog.ShowDialog() != true || dialog.SelectedDefinition is null) return;
+        var device = _simulatedDeckCatalog.Create(dialog.SelectedDefinition.Id);
+        _simulatedDevices.Add(device);
+        _selectedDeviceId = device.DeviceId;
+        RefreshUi();
+    }
+
+    private void RemoveSimulatedDeviceButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (DevicesListBox.SelectedItem is not MonitoredDeckDevice { IsSimulated: true } selected) return;
+        _simulatedDevices.RemoveAll(device => string.Equals(device.DeviceId, selected.DeviceId, StringComparison.OrdinalIgnoreCase));
+        _selectedDeviceId = null;
+        RefreshUi();
     }
 
     private void TurnActionComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -598,7 +651,7 @@ public partial class MainWindow : Window
     {
         _ = Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
         {
-            foreach (var device in _monitor.GetConnectedDevices().DistinctBy(device => device.DeviceId)
+            foreach (var device in GetAvailableDevices()
                          .Where(device => DeviceUsesStateSource(device, sourceId)))
             {
                 if (string.Equals(device.DeviceId, _selectedDeviceId, StringComparison.OrdinalIgnoreCase))
@@ -614,7 +667,7 @@ public partial class MainWindow : Window
 
     private void RefreshUi()
     {
-        var connected = _monitor.GetConnectedDevices();
+        var connected = GetAvailableDevices();
         var selectedId = _selectedDeviceId ?? (DevicesListBox.SelectedItem as MonitoredDeckDevice)?.DeviceId;
 
         DevicesListBox.ItemsSource = connected;
@@ -628,6 +681,7 @@ public partial class MainWindow : Window
             RenderFaceplate(null);
             RefreshSceneEditor();
             RefreshBindingEditor();
+            RemoveSimulatedDeviceButton.IsEnabled = false;
             return;
         }
 
@@ -663,7 +717,9 @@ public partial class MainWindow : Window
 
         SelectedDeviceTitle.Text = selected.DisplayName;
 
-        var lines = _monitor.GetLogLines(selected.DeviceId);
+        var lines = selected.IsSimulated
+            ? new[] { "Simulation active. No USB commands will be sent." }
+            : _monitor.GetLogLines(selected.DeviceId);
         if (lines.Count == 0)
         {
             LogListBox.ItemsSource = new[] { "Waiting for input..." };
@@ -1719,6 +1775,7 @@ public partial class MainWindow : Window
 
     private void QueueIconSync(MonitoredDeckDevice device)
     {
+        if (device.IsSimulated) return;
         var buttonIndexes = device.Layout.Controls
             .Where(control => control.ControlType == DeckControlType.Button && control.CanHaveIcon)
             .Select(control => control.ControlIndex)
@@ -1880,4 +1937,9 @@ public partial class MainWindow : Window
         brush.Freeze();
         return brush;
     }
+
+    private IReadOnlyList<MonitoredDeckDevice> GetAvailableDevices() => _monitor.GetConnectedDevices()
+        .Concat(_simulatedDevices)
+        .DistinctBy(device => device.DeviceId, StringComparer.OrdinalIgnoreCase)
+        .ToList();
 }

@@ -28,6 +28,10 @@ public partial class MainWindow
         var copy = new MenuItem { Header = "_Copy control", InputGestureText = "Ctrl+C" };
         var paste = new MenuItem { Header = "_Paste control", InputGestureText = "Ctrl+V" };
         var reset = new MenuItem { Header = "_Reset control", InputGestureText = "Delete" };
+        var simulatePrimary = new MenuItem { Header = "Simulate _press" };
+        var simulateLeft = new MenuItem { Header = "Simulate turn _left" };
+        var simulateRight = new MenuItem { Header = "Simulate turn _right" };
+        var simulateSeparator = new Separator();
         copy.Click += (_, _) => CopyControl(control);
         paste.Click += (_, _) => PasteControl(control);
         reset.Click += (sender, e) =>
@@ -35,15 +39,36 @@ public partial class MainWindow
             SelectControl(control);
             ResetControlButton_OnClick(sender, e);
         };
+        simulatePrimary.Click += (_, _) => SimulateInput(control,
+            control.ControlType == DeckControlType.Button ? DeckInputEventType.ButtonPress : DeckInputEventType.EncoderPress);
+        simulateLeft.Click += (_, _) => SimulateInput(control, DeckInputEventType.EncoderTurn, -1);
+        simulateRight.Click += (_, _) => SimulateInput(control, DeckInputEventType.EncoderTurn, 1);
         border.ContextMenu.Items.Add(copy);
         border.ContextMenu.Items.Add(paste);
-        border.ContextMenu.Items.Add(new Separator());
+        border.ContextMenu.Items.Add(simulateSeparator);
         border.ContextMenu.Items.Add(reset);
+        border.ContextMenu.Items.Add(new Separator());
+        border.ContextMenu.Items.Add(simulatePrimary);
+        border.ContextMenu.Items.Add(simulateLeft);
+        border.ContextMenu.Items.Add(simulateRight);
         border.ContextMenuOpening += (_, _) =>
         {
             border.Focus();
             paste.IsEnabled = _copiedControl?.CanPasteTo(control) == true;
+            var simulated = GetSelectedDevice()?.IsSimulated == true;
+            simulateSeparator.Visibility = simulated ? Visibility.Visible : Visibility.Collapsed;
+            simulatePrimary.Visibility = simulated ? Visibility.Visible : Visibility.Collapsed;
+            simulateLeft.Visibility = simulated && control.ControlType == DeckControlType.Encoder
+                ? Visibility.Visible : Visibility.Collapsed;
+            simulateRight.Visibility = simulateLeft.Visibility;
         };
+    }
+
+    private void SimulateInput(DeckControlLayout control, DeckInputEventType type, int direction = 0)
+    {
+        if (GetSelectedDevice() is not { IsSimulated: true } device) return;
+        OnInputEventReceived(device, new DeckInputEvent(type, control.ControlIndex, direction));
+        EditingStatusText.Text = $"Simulated {type} on {DescribeControl(control)}.";
     }
 
     private void SelectControl(DeckControlLayout control)

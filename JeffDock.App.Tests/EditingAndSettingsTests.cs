@@ -1,6 +1,7 @@
 using System.IO;
 using JeffDock.App.Bindings;
 using JeffDock.App.Settings;
+using JeffDock.App.Simulation;
 using JeffDock.Core.Akp03e;
 using JeffDock.Core.Deck;
 
@@ -10,6 +11,29 @@ public sealed class EditingAndSettingsTests : IDisposable
 {
     private readonly string _directory = Path.Combine(Path.GetTempPath(), "AJeffTests", Guid.NewGuid().ToString("N"));
     private static MonitoredDeckDevice Device(string id = "test") => new(id, "AJAZZ AKP03E", "test-path", null, new Akp03eProfile().Layout);
+
+    [Fact]
+    public void SimulatedDeviceCatalogueLoadsBothLayouts()
+    {
+        var catalogue = new SimulatedDeckCatalog();
+        Assert.Equal(["ajazz-akp153", "ajazz-akp03e"], catalogue.Definitions.Select(item => item.Id));
+
+        var device = catalogue.Create("ajazz-akp153");
+        Assert.True(device.IsSimulated);
+        Assert.Equal("simulation:ajazz-akp153", device.DeviceId);
+        Assert.Equal(15, device.Layout.Controls.Count);
+        Assert.All(device.Layout.Controls, control =>
+        {
+            Assert.Equal(DeckControlType.Button, control.ControlType);
+            Assert.True(control.CanHaveIcon);
+        });
+        Assert.Equal(Enumerable.Range(0, 15), device.Layout.Controls.Select(control => control.ControlIndex));
+
+        var akp03e = catalogue.Create("ajazz-akp03e");
+        Assert.Equal(12, akp03e.Layout.Controls.Count);
+        Assert.Equal(3, akp03e.Layout.Controls.Count(control => control.ControlType == DeckControlType.Encoder));
+        Assert.Throws<ArgumentException>(() => catalogue.Create("missing"));
+    }
 
     [Fact]
     public void CopyCapturesBothDialBindingsAndParametersAcrossScenesWithoutSharing()

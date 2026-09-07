@@ -1,0 +1,47 @@
+{
+  "devices": [
+    {
+      "id": "ajazz-akp153", "displayName": "AJAZZ AKP153",
+      "width": 430, "height": 250,
+      "buttonImageRotationDegreesClockwise": 90,
+      "buttonImageOutputWidth": 85, "buttonImageOutputHeight": 85,
+      "controls": [
+        { "controlType": "Button", "controlIndex": 0, "visualKind": "SquareButton", "x": 10, "y": 10, "width": 72, "height": 72, "label": "0", "canHaveIcon": true },
+        { "controlType": "Button", "controlIndex": 1, "visualKind": "SquareButton", "x": 94, "y": 10, "width": 72, "height": 72, "label": "1", "canHaveIcon": true },
+        { "controlType": "Button", "controlIndex": 2, "visualKind": "SquareButton", "x": 178, "y": 10, "width": 72, "height": 72, "label": "2", "canHaveIcon": true },
+        { "controlType": "Button", "controlIndex": 3, "visualKind": "SquareButton", "x": 262, "y": 10, "width": 72, "height": 72, "label": "3", "canHaveIcon": true },
+        { "controlType": "Button", "controlIndex": 4, "visualKind": "SquareButton", "x": 346, "y": 10, "width": 72, "height": 72, "label": "4", "canHaveIcon": true },
+        { "controlType": "Button", "controlIndex": 5, "visualKind": "SquareButton", "x": 10, "y": 94, "width": 72, "height": 72, "label": "5", "canHaveIcon": true },
+        { "controlType": "Button", "controlIndex": 6, "visualKind": "SquareButton", "x": 94, "y": 94, "width": 72, "height": 72, "label": "6", "canHaveIcon": true },
+        { "controlType": "Button", "controlIndex": 7, "visualKind": "SquareButton", "x": 178, "y": 94, "width": 72, "height": 72, "label": "7", "canHaveIcon": true },
+        { "controlType": "Button", "controlIndex": 8, "visualKind": "SquareButton", "x": 262, "y": 94, "width": 72, "height": 72, "label": "8", "canHaveIcon": true },
+        { "controlType": "Button", "controlIndex": 9, "visualKind": "SquareButton", "x": 346, "y": 94, "width": 72, "height": 72, "label": "9", "canHaveIcon": true },
+        { "controlType": "Button", "controlIndex": 10, "visualKind": "SquareButton", "x": 10, "y": 178, "width": 72, "height": 72, "label": "10", "canHaveIcon": true },
+        { "controlType": "Button", "controlIndex": 11, "visualKind": "SquareButton", "x": 94, "y": 178, "width": 72, "height": 72, "label": "11", "canHaveIcon": true },
+        { "controlType": "Button", "controlIndex": 12, "visualKind": "SquareButton", "x": 178, "y": 178, "width": 72, "height": 72, "label": "12", "canHaveIcon": true },
+        { "controlType": "Button", "controlIndex": 13, "visualKind": "SquareButton", "x": 262, "y": 178, "width": 72, "height": 72, "label": "13", "canHaveIcon": true },
+        { "controlType": "Button", "controlIndex": 14, "visualKind": "SquareButton", "x": 346, "y": 178, "width": 72, "height": 72, "label": "14", "canHaveIcon": true }
+      ]
+    },
+    {
+      "id": "ajazz-akp03e", "displayName": "AJAZZ AKP03E",
+      "width": 460, "height": 220,
+      "buttonImageRotationDegreesClockwise": 90,
+      "buttonImageOutputWidth": 64, "buttonImageOutputHeight": 64,
+      "controls": [
+        { "controlType": "Button", "controlIndex": 0, "visualKind": "SquareButton", "x": 8, "y": 8, "width": 72, "height": 72, "label": "0", "canHaveIcon": true },
+        { "controlType": "Button", "controlIndex": 1, "visualKind": "SquareButton", "x": 88, "y": 8, "width": 72, "height": 72, "label": "1", "canHaveIcon": true },
+        { "controlType": "Button", "controlIndex": 2, "visualKind": "SquareButton", "x": 168, "y": 8, "width": 72, "height": 72, "label": "2", "canHaveIcon": true },
+        { "controlType": "Button", "controlIndex": 3, "visualKind": "SquareButton", "x": 8, "y": 88, "width": 72, "height": 72, "label": "3", "canHaveIcon": true },
+        { "controlType": "Button", "controlIndex": 4, "visualKind": "SquareButton", "x": 88, "y": 88, "width": 72, "height": 72, "label": "4", "canHaveIcon": true },
+        { "controlType": "Button", "controlIndex": 5, "visualKind": "SquareButton", "x": 168, "y": 88, "width": 72, "height": 72, "label": "5", "canHaveIcon": true },
+        { "controlType": "Button", "controlIndex": 6, "visualKind": "RoundButton", "x": 10, "y": 176, "width": 56, "height": 32, "label": "6" },
+        { "controlType": "Button", "controlIndex": 7, "visualKind": "RoundButton", "x": 92, "y": 176, "width": 56, "height": 32, "label": "7" },
+        { "controlType": "Button", "controlIndex": 8, "visualKind": "RoundButton", "x": 174, "y": 176, "width": 56, "height": 32, "label": "8" },
+        { "controlType": "Encoder", "controlIndex": 1, "visualKind": "Knob", "x": 320, "y": 8, "width": 110, "height": 110, "label": "1" },
+        { "controlType": "Encoder", "controlIndex": 0, "visualKind": "Knob", "x": 300, "y": 136, "width": 70, "height": 70, "label": "0" },
+        { "controlType": "Encoder", "controlIndex": 2, "visualKind": "Knob", "x": 380, "y": 136, "width": 70, "height": 70, "label": "2" }
+      ]
+    }
+  ]
+}

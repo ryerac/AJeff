@@ -17,21 +17,25 @@ internal sealed class ApplicationSettingsStore
             "JeffDock",
             "application-settings.json");
 
-        StartMinimized = Load().StartMinimized;
+        var settings = Load();
+        StartMinimized = settings.StartMinimized;
+        EnableSimulators = settings.EnableSimulators;
     }
 
     public bool StartWithWindows => IsStartupRegistered();
     public bool StartMinimized { get; private set; }
+    public bool EnableSimulators { get; private set; }
 
-    public void Save(bool startWithWindows, bool startMinimized)
+    public void Save(bool startWithWindows, bool startMinimized, bool enableSimulators)
     {
         UpdateStartupRegistration(startWithWindows, startMinimized);
         StartMinimized = startMinimized;
+        EnableSimulators = enableSimulators;
 
         Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
         var temporaryPath = _path + ".tmp";
         File.WriteAllText(temporaryPath, JsonSerializer.Serialize(
-            new SettingsDocument(1, startMinimized),
+            new SettingsDocument(2, startMinimized, enableSimulators),
             new JsonSerializerOptions { WriteIndented = true }));
         File.Move(temporaryPath, _path, true);
     }
@@ -41,12 +45,12 @@ internal sealed class ApplicationSettingsStore
         try
         {
             return File.Exists(_path)
-                ? JsonSerializer.Deserialize<SettingsDocument>(File.ReadAllText(_path)) ?? new(1, false)
-                : new(1, false);
+                ? JsonSerializer.Deserialize<SettingsDocument>(File.ReadAllText(_path)) ?? new(2, false, false)
+                : new(2, false, false);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
         {
-            return new(1, false);
+            return new(2, false, false);
         }
     }
 
@@ -77,5 +81,5 @@ internal sealed class ApplicationSettingsStore
         key.SetValue(StartupValueName, command, RegistryValueKind.String);
     }
 
-    private sealed record SettingsDocument(int Version, bool StartMinimized);
+    private sealed record SettingsDocument(int Version, bool StartMinimized, bool EnableSimulators = false);
 }

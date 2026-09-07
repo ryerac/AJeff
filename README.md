@@ -62,6 +62,17 @@ Other models may use different USB protocols even when they look similar. They
 need their own tested device profile before they can be considered supported.
 If you have an AJAZZ, please feel free to create a discussion so we can add the profile! Heck, it may even work with other chinese-marketplace pads which operate in the same way!
 
+For UI development without another physical device, open **Settings**, enable
+**Enable simulator tools**, and save the application settings. **Add simulated...**
+then appears below the device list and opens the model menu. The bundled JSON
+catalogue contains AKP153 and AKP03E layouts; **Remove simulated** removes the
+selected simulator for the current run. You can also launch with
+`--simulate-akp153`, choose **AJeff (Simulated AKP153)** in VS Code, or pass
+`--simulate=<catalogue-id>`. Definitions live in
+`JeffDock.App/Assets/Simulation/simulated-devices.json`. Simulators never open a
+USB device or send HID commands. Right-click a simulated control to fire its
+press or encoder action.
+
 ## Included plugins
 
 AJeff currently bundles a small set of trusted, in-process plugins:

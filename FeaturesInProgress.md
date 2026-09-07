@@ -113,3 +113,18 @@ Status: Implemented in the System plugin.
 - [x] Show `--` while waiting for CPU's first interval or when a reading fails.
 - [x] Keep updates working on all connected devices, with existing idle sleep behaviour.
 - [ ] Verify readability and live updates on the physical deck.
+
+## Device simulation
+
+Status: JSON-backed multi-device UI simulator implemented.
+
+- [x] Load simulated models from `Assets/Simulation/simulated-devices.json`.
+- [x] Persist an **Enable simulator tools** application setting for normal launches.
+- [x] Add and remove simulated devices from the device list while AJeff is running.
+- [x] Include software-only AJAZZ AKP153 and AKP03E layouts.
+- [x] Launch with `--simulate-akp153` or `--simulate=<catalogue-id>`.
+- [x] Provide a VS Code launch profile named **AJeff (Simulated AKP153)**.
+- [x] Support scenes, bindings, presets, icons, copy/paste, and simulated presses.
+- [x] Never register a USB VID/PID or send HID/display commands for the simulator.
+- [ ] Confirm AKP153 firmware variant, per-key image geometry, transforms, reports,
+  and commands on physical hardware before adding real support.

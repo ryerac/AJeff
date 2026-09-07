@@ -5,7 +5,8 @@ public sealed record MonitoredDeckDevice(
     string ProfileName,
     string DevicePath,
     string? SerialNumber,
-    DeckLayoutDefinition Layout
+    DeckLayoutDefinition Layout,
+    bool IsSimulated = false
 )
 {
     public string DisplayName => !string.IsNullOrWhiteSpace(SerialNumber)

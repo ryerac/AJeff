@@ -2,6 +2,17 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "AJeff (Simulated AKP153)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build AJeff (Debug)",
+      "program": "${workspaceFolder}/JeffDock.App/bin/Debug/net10.0-windows/AJeff.dll",
+      "args": ["--simulate-akp153"],
+      "cwd": "${workspaceFolder}/JeffDock.App/bin/Debug/net10.0-windows",
+      "stopAtEntry": false,
+      "justMyCode": true
+    },
+    {
       "name": "AJeff (Debug)",
       "type": "coreclr",
       "request": "launch",

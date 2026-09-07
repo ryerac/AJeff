@@ -29,7 +29,17 @@ public partial class App : Application
             return;
         }
 
-        var window = new MainWindow();
+        var simulatedDeviceIds = e.Args
+            .Select(argument => string.Equals(argument, "--simulate-akp153", StringComparison.OrdinalIgnoreCase)
+                ? "ajazz-akp153"
+                : argument.StartsWith("--simulate=", StringComparison.OrdinalIgnoreCase)
+                    ? argument["--simulate=".Length..]
+                    : null)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Cast<string>()
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var window = new MainWindow(simulatedDeviceIds);
         MainWindow = window;
         if (e.Args.Any(argument => string.Equals(argument, "--minimized", StringComparison.OrdinalIgnoreCase)))
         {

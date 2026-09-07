@@ -22,8 +22,13 @@
                        Height="88"
                        Stretch="Uniform"
                        Margin="0,0,0,18" />
-                <TextBlock DockPanel.Dock="Top" Text="Connected Devices" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
-                <TextBlock DockPanel.Dock="Top" Text="Available hardware" Foreground="{StaticResource MutedTextBrush}" Margin="0,0,0,12" />
+                <TextBlock DockPanel.Dock="Top" Text="Devices" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
+                <TextBlock DockPanel.Dock="Top" Text="Connected hardware and simulations" Foreground="{StaticResource MutedTextBrush}" Margin="0,0,0,12" />
+                <StackPanel x:Name="SimulatorToolsPanel" DockPanel.Dock="Bottom" Margin="0,12,0,0" Visibility="Collapsed">
+                    <Button Content="Add simulated..." Click="AddSimulatedDeviceButton_OnClick" Margin="0,0,0,8" />
+                    <Button x:Name="RemoveSimulatedDeviceButton" Content="Remove simulated" IsEnabled="False"
+                            Click="RemoveSimulatedDeviceButton_OnClick" />
+                </StackPanel>
                 <ListBox x:Name="DevicesListBox"
                          SelectionChanged="DevicesListBox_OnSelectionChanged"
                          DisplayMemberPath="DisplayName" />
