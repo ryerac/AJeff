@@ -168,6 +168,7 @@ Anyone with a real device that operates in the same way, feel free to aid in add
 The bundled Elgato icon set comes from
 [elgatosf/icons](https://github.com/elgatosf/icons) and is distributed under its
 MIT licence. Its pinned version and licence text are included with the assets.
+Also inspired by me finding https://github.com/tomekceszke/ajazz-akp03 by  [@tomekceszke](https://www.github.com/tomekceszke) which did some of the hard work of mapping out some key codes.
 
 AJeff is an independent community project and is not affiliated with or
 endorsed by AJAZZ or Elgato.
