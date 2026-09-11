@@ -13,7 +13,7 @@ public class DeckDisplayControllerTests
     [Theory]
     [InlineData(DeckSleepBehaviour.Dim)]
     [InlineData(DeckSleepBehaviour.ScreenOff)]
-    public void SleepDefersImageUpdatesAndWakeRestoresLatestArtworkAndBrightness(DeckSleepBehaviour behaviour)
+    public void DimKeepsImagesLiveScreenOffDefersAndWakeRestoresBrightness(DeckSleepBehaviour behaviour)
     {
         var display = Create(new(37, true, 1, behaviour));
         display.Tick(59_999);
@@ -26,7 +26,13 @@ public class DeckDisplayControllerTests
         _packets.Clear();
         byte[] image = [0xFF, 0xD8, 0x23, 0xFF, 0xD9];
         display.UpdateImages(new Dictionary<int, byte[]> { [0] = image });
-        Assert.Empty(_packets);
+        if (behaviour == DeckSleepBehaviour.Dim)
+            AssertPackets(_profile.BuildClearButtonImages()
+                .Concat(_profile.BuildButtonImageUpload(0, image))
+                .Append(_profile.BuildBrightnessPacket(1)), _packets);
+        else
+            Assert.Empty(_packets);
+        _packets.Clear();
         Assert.False(display.HandleInput(new(DeckInputEventType.ButtonPress, 0, 0), 61_000));
         AssertPackets(new[] { _profile.InitializePacket }
             .Concat(_profile.BuildClearButtonImages())

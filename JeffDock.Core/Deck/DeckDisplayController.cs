@@ -48,9 +48,9 @@ public sealed class DeckDisplayController
         lock (_sync)
         {
             _images = images.ToDictionary(pair => pair.Key, pair => pair.Value.ToArray());
-            // Retain the latest artwork for wake without sending commands that might
-            // turn the panel back on or undo dimming.
-            if (!_sleeping && !_suspended) WriteImages();
+            // Dimmed displays stay live; screen-off and suspended displays cache artwork for wake.
+            if (!_suspended && (!_sleeping || _settings.SleepBehaviour == DeckSleepBehaviour.Dim))
+                WriteImages(_sleeping ? 1 : _settings.Brightness);
         }
     }
 
@@ -116,15 +116,15 @@ public sealed class DeckDisplayController
     private void RestoreDisplay()
     {
         if (_deviceProfile.InitializePacket is { } initialize) _write(initialize);
-        WriteImages();
+        WriteImages(_settings.Brightness);
         _sleeping = false;
     }
 
-    private void WriteImages()
+    private void WriteImages(int brightness)
     {
         foreach (var packet in _imageProfile.BuildClearButtonImages()) _write(packet);
         foreach (var (index, image) in _images.OrderBy(pair => pair.Key))
             foreach (var packet in _imageProfile.BuildButtonImageUpload(index, image)) _write(packet);
-        _write(_imageProfile.BuildBrightnessPacket(_settings.Brightness));
+        _write(_imageProfile.BuildBrightnessPacket(brightness));
     }
 }

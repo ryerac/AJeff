@@ -42,7 +42,8 @@ are retained across application restarts and device reconnections.
 Inactivity is measured from button presses, dial presses, and dial turns on the
 deck, independently of mouse and keyboard activity on the PC. Idle checks occur
 approximately every two seconds. Dynamic icon updates do not reset the timeout
-or wake the display; the latest artwork is restored when it wakes.
+or wake the display. Dimmed displays keep updating at 1% brightness; screen-off
+displays cache the latest artwork and restore it when they wake.
 
 The first button press, dial press, or dial turn wakes a dimmed or sleeping
 display without executing its action. Because the current input protocol does

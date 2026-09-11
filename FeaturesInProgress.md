@@ -67,8 +67,8 @@ Implementation decisions:
   press on that same control can therefore be suppressed too; verify held-button
   and dial-repeat timing on hardware.
 
-Display output is serialized with sleep/wake handling. Artwork updates are cached
-while idle and restored on wake, without changing brightness or waking the panel.
+Display output is serialized with sleep/wake handling. Dimmed displays keep updating
+artwork at 1% brightness. Screen-off displays cache updates and restore them on wake.
 
 Acceptance checks:
 
